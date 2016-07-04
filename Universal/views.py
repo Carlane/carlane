@@ -3,8 +3,9 @@ from rest_framework import status
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 import datetime
+from datetime import timedelta
 
-from Universal.models import CarBrands , User , UserCar , User_Type , CarModels , User_Address , UserStatus , Request,Request_Allocation , Car_Joint
+from Universal.models import CarBrands , User , UserCar , User_Type , CarModels , Car_Joint, User_Address , UserStatus , Request,Request_Allocation , Request_Status
 from Universal.models import Service_Type , Joint_Service_Mapping , Joint_Driver_Mapping , Driver_Allocation_Status , TimeSlot , Joint_Allocation_Status
 # Create your views here.
 @api_view(['GET' , 'POST'])
@@ -25,10 +26,24 @@ def cardetails(request, pk , format = None):
     if(request.method == 'POST'):
         requestdata = request.data
         existUser = User.objects.get(userid = pk)
+        phoneupdateresult = False
+        carupdateresult = False
         if existUser is None:
             print('User Not Added in system - Cant add car for a Ghost')
             return Response({'name':'NoUser'}, status.HTTP_400_BAD_REQUEST)
         newRegNumber = requestdata['registration_number']
+        usermobile = requestdata['mobile_number']
+        print('usermobile')
+        print('usermobile is' , usermobile)
+        try:
+            print('Updating Mobile for user')
+            existUser.joint_mobile = usermobile
+            existUser.save()
+            phoneupdateresult = True
+        except:
+            print('Updating mobile Failed')
+            phoneupdateresult = False
+
         existCar = UserCar.objects.filter(carownerid__userid=pk).filter(registration_number=newRegNumber)
         #car with same regisrtation number is already added
         if existCar is not None and len(existCar) != 0:
@@ -41,12 +56,16 @@ def cardetails(request, pk , format = None):
             carmodel_requestdata = requestdata['carmodel']
             print('car brand' , (carbrand_requestdata))
             print('car model' , (carmodel_requestdata))
-            carsbrand = CarBrands.objects.get(car_brand = carbrand_requestdata)
+            try:
+                carsbrand = CarBrands.objects.get(car_brand = carbrand_requestdata)
+            except:
+                print("Not able to get info from DB" , carsbrand)
             if carsbrand is None:
                 print('Cars Brand is None')
                 #print(carsbrand[0])
             #print('CarBrand' , carsbrand.car_brand)
             try :
+                print("Getting car models - ", carmodel_requestdata)
                 carsmodel =  CarModels.objects.get(car_model = carmodel_requestdata)
             except :
                 print("Error in getting Car Modes")
@@ -64,9 +83,9 @@ def cardetails(request, pk , format = None):
             existUser.user_status = profilestatus
             existUser.save()
         except:
-            return Response({'response':[{'error':True,'reason':'FailedToAdd','success':False,'id':existUser.userid }]} , status = status.HTTP_201_CREATED)
+            return Response({'response':[{'error':True,'reason':'FailedToAdd','success':False,'id':existUser.userid,'phoneresult':phoneupdateresult }]} , status = status.HTTP_201_CREATED)
 
-        return Response({'response':[{'registration_number': newCarEntry.registration_number ,'name':existUser.first_name,'error':False,'reason':'CarAdded','success':True,'id':existUser.userid,'userstatus':existUser.user_status.user_status}]} , status = status.HTTP_201_CREATED)
+        return Response({'response':[{'registration_number': newCarEntry.registration_number ,'name':existUser.first_name,'error':False,'reason':'CarAdded','success':True,'id':existUser.userid,'userstatus':existUser.user_status.user_status,'mobilebkEnd':usermobile ,'phoneresult':phoneupdateresult}]} , status = status.HTTP_201_CREATED)
 
 
 @api_view(['GET' ,'POST'])
@@ -80,7 +99,7 @@ def usersignup(request , format = None):
         mobile = userdata['mobile']
         token = userdata['token']
         #validate if the same email or phone is present in the database
-        existUser = User.objects.filter(email=email , joint_mobile=mobile ,access_token = token)
+        existUser = User.objects.filter(email=email ,access_token = token)
         print('existUser' , existUser)
         if existUser is None or len(existUser) == 0:
             print('existUser is None')
@@ -196,7 +215,10 @@ def findSlotsForDate(request , pk , format = None):
     requestdata = request.data
     request_service_id = requestdata['serviceid']
     available_services = Service_Type.objects.get(id = request_service_id)
+    days_ahead_of_current_date = requestdata['daysahead']
     print('request service id is ' , request_service_id)
+    print('days ahead from current date' , days_ahead_of_current_date)
+    request_Date = datetime.datetime.now() + timedelta(days=int(days_ahead_of_current_date))
     #print('length of available services is ' , len(available_services))
     #find all the Joint which are catering this Service
     try :
@@ -225,17 +247,31 @@ def findSlotsForDate(request , pk , format = None):
     for each_drivermap in drivermapping:
         for timeslot in time_slots:
             print('each_rider ',each_drivermap.driver_user_id.userid ,timeslot.display_name)
-            rider = Driver_Allocation_Status.objects.filter(driver_user_id = each_drivermap.driver_user_id.userid , current_count__lte = 4, time_slot_id = timeslot.id)
+            #Find the drivers allocation for date and time slot , If No allocation is there it means driver is available
+            #If Allocation is there then check if current_count__lte = 4 then slot is available
+            rider = Driver_Allocation_Status.objects.filter(driver_user_id = each_drivermap.driver_user_id.userid , date = request_Date, time_slot_id = timeslot.id)
             if len(rider) > 0:
                 try:
-                    slotAvailableDict = {timeslot.id:True}
-                    #slotAvailableDict = {'timeslotid',timeslot.id}
-                    response_time_slots.append(slotAvailableDict)
-                    print('response slot en',len(response_time_slots))
-                    if len(response_time_slots) ==  len(time_slots):
-                        break
+                    if rider[0].current_count <=5:
+                        print('Information available for this slot and count is also less')
+                        slotAvailableDict = {timeslot.id:True}
+                        #slotAvailableDict = {'timeslotid',timeslot.id}
+                        response_time_slots.append(slotAvailableDict)
+                        print('response slot en',len(response_time_slots))
+                        if len(response_time_slots) ==  len(time_slots):
+                            break
                 except:
                     print('this slot id is already available' , timeslot.id)
+            else :
+                print('No Information means entire slot is empty')
+                #No Information means entire slot is empty
+                slotAvailableDict = {timeslot.id:True}
+                #slotAvailableDict = {'timeslotid',timeslot.id}
+                response_time_slots.append(slotAvailableDict)
+                print('response slot en',len(response_time_slots))
+                if len(response_time_slots) ==  len(time_slots):
+                    break
+
 
 
         if len(response_time_slots) ==  len(time_slots):
@@ -251,7 +287,11 @@ def initreq(request , pk , format = None):
     request_service_id = requestdata['serviceid']
     request_slot_id= requestdata['timeslot_id']
     request_car =requestdata['carno']
-    print('Printing data received in Request ', request_service_id,    request_slot_id,request_car)
+    print('Printing data received in Request service , slot , car', request_service_id,    request_slot_id,request_car)
+
+    days_ahead_of_current_date = requestdata['daysahead']
+    print('days ahead from current date' , days_ahead_of_current_date)
+    request_Date = datetime.datetime.now() + timedelta(days=int(days_ahead_of_current_date))
 
     time_slot = TimeSlot.objects.get(id = request_slot_id)
     #Again First find the drivers for the given time slot
@@ -270,24 +310,35 @@ def initreq(request , pk , format = None):
         print('number of drivers', len(joint_driver_map))
         for driverMapObject in joint_driver_map:
             print('driver name',driverMapObject.driver_user_id.first_name)
-            rider = Driver_Allocation_Status.objects.get(driver_user_id = driverMapObject.driver_user_id.userid , current_count__lte = 4, time_slot_id = time_slot.id)
+            try:
+                rider = Driver_Allocation_Status.objects.filter(driver_user_id = driverMapObject.driver_user_id.userid , date = request_Date, time_slot_id = time_slot.id)
+            except Exception as inst:
+                print('Error in finding driver allocation status')
+                print(type(inst))
+                print(inst.args)
+                print(inst)
+                rider = None
+
             print('driver name allocation',driverMapObject.driver_user_id.first_name)
-            if rider is not None:
-                #allocate this guy
-                print('allocating this driver', driverMapObject.driver_user_id.first_name)
+            print('length of rider ' ,len(rider))
+            if len(rider) > 0 and rider[0].current_count > 5:
+                print('this rider is already booked so search for next one')
+                continue
+            else:
+                # no allocations for this guy yet so  allocate this guy
+                print('allocating this driver - name is ---- ', driverMapObject.driver_user_id.first_name)
                 user = User.objects.get(userid =pk)
                 user_car = UserCar.objects.get(registration_number = request_car)
-                newRequest = Request(user_id = user , time_slot_id = time_slot ,user_car_id = user_car)
+                request_current_status = Request_Status.objects.get(current_status ='request_init')
+                print("request current status" ,request_current_status.current_status)
+                newRequest = Request(user_id = user , time_slot_id = time_slot ,user_car_id = user_car , date = request_Date , current_status = request_current_status)
                 newRequest.save()
-                print('new request id ' ,newRequest.id)
-
-
+                print('Request Placed -- New request id ' ,newRequest.id)
                 joint = Car_Joint.objects.get(id = each_joint.car_joint_id.id)
                 servicetype = Service_Type.objects.get(id = request_service_id)
-
                 newRequestAllocation = Request_Allocation(request_id = newRequest, car_joint_id = joint , service_type_id= servicetype)
                 newRequestAllocation.save()
-                print('newRequest Allocation id' , newRequestAllocation.id)
+                print('NewRequest Allocation id' , newRequestAllocation.id)
                 #increase joint allocation status(currently does not handler dates)
                 current_allocation_count = 0
                 try:
@@ -304,9 +355,25 @@ def initreq(request , pk , format = None):
                     print('Its a new Allocation for this joint ')
                     newJointAllocationStatus = Joint_Allocation_Status(car_joint_id = joint , service_type_id = servicetype , current_count =1)
 
-
                 #increase the count of driver allocation status
-                rider.current_count = rider.current_count +1
+                if rider is None or len(rider) <= 0:
+                    # create new driver allocation
+                    print("creating driver allocation")
+                    driver_allocation_obj = Driver_Allocation_Status(date = request_Date ,current_count = 1 ,driver_user_id =  driverMapObject.driver_user_id ,time_slot_id = time_slot)
+                    driver_allocation_obj.save()
+                    print("Success driver allocation success id is " , driver_allocation_obj.id)
+                else:
+                    print("Updating driver allocation status")
+                    rider[0].current_count = rider[0].current_count + 1
+                    rider[0].save()
+                    print("Succes driver alocation update - new count is ",rider[0].current_count)
+                    print('updating request to driver allocated')
+                    request_current_status = Request_Status.objects.get(current_status ='driver_allocated')
+                    newRequest.current_status = request_current_status
+                    newRequest.save()
+                    print('updated request')
+
+
 
                 return Response({'response':[{'error':False,'reason':'Booking Confirmed','success':True,'id':pk  ,'driver':driverMapObject.driver_user_id.first_name,
                 'joint':each_joint.car_joint_id.name}]} , status = status.HTTP_201_CREATED)

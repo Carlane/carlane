@@ -172,6 +172,10 @@ class Joint_Driver_Mapping(models.Model):
 	driver_user_id = models.ForeignKey(User)
 	s_active = models.BooleanField(default = True)
 
+class Request_Status(models.Model):
+	id = models.AutoField(primary_key = True)
+	current_status = models.CharField(max_length = 50)
+
 #we need date in request or request allocation
 class Request(models.Model):
 	id =  models.AutoField(primary_key = True)
@@ -179,6 +183,7 @@ class Request(models.Model):
 	time_slot_id = models.ForeignKey(TimeSlot)
 	user_car_id = models.ForeignKey(UserCar)
 	date = models.DateField(auto_now = False , auto_now_add = False , blank = False , null = True)
+	current_status = models.ForeignKey(Request_Status , default = None , null = True)
 
 
 
@@ -187,9 +192,6 @@ class Request_Allocation(models.Model):
 	request_id = models.ForeignKey(Request)
 	car_joint_id = models.ForeignKey(Car_Joint)
 	service_type_id = models.ForeignKey(Service_Type)
-	current_status = models.CharField(max_length = 50)
-
-
 
 class Joint_Allocation_Status(models.Model):
 	id =  models.AutoField(primary_key = True)
