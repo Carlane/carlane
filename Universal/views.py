@@ -342,8 +342,9 @@ def initreq(request , pk , format = None):
                 #increase joint allocation status(currently does not handler dates)
                 current_allocation_count = 0
                 try:
-                    existJointAllocationStatus = Joint_Allocation_Status.objects.get(car_joint_id =  joint , service_type_id = servicetype)
+                    existJointAllocationStatus = Joint_Allocation_Status.objects.get(car_joint_id =  joint , service_type_id = servicetype , date = request_Date)
                 except:
+                    print('Error in Finding Existing Joint Allocation')
                     existJointAllocationStatus = None
 
                 if existJointAllocationStatus is not None:
@@ -352,8 +353,9 @@ def initreq(request , pk , format = None):
                     print('Count for this Joints Existing Allocation',existJointAllocationStatus.current_count)
                     existJointAllocationStatus.save()
                 else:
-                    print('Its a new Allocation for this joint ')
-                    newJointAllocationStatus = Joint_Allocation_Status(car_joint_id = joint , service_type_id = servicetype , current_count =1)
+                    print('Its a new Joint Allocation for this joint ')
+                    newJointAllocationStatus = Joint_Allocation_Status(car_joint_id = joint , service_type_id = servicetype , current_count =1 , date = request_Date)
+                    newJointAllocationStatus.save()
 
                 #increase the count of driver allocation status
                 if rider is None or len(rider) <= 0:
@@ -367,14 +369,14 @@ def initreq(request , pk , format = None):
                     rider[0].current_count = rider[0].current_count + 1
                     rider[0].save()
                     print("Succes driver alocation update - new count is ",rider[0].current_count)
-                    print('updating request to driver allocated')
-                    request_current_status = Request_Status.objects.get(current_status ='driver_allocated')
-                    newRequest.current_status = request_current_status
-                    newRequest.save()
-                    print('updated request')
+                print('updating request to driver allocated')
+                request_current_status = Request_Status.objects.get(current_status ='driver_allocated')
+                newRequest.current_status = request_current_status
+                newRequest.save()
+                print('updated request')
 
 
 
                 return Response({'response':[{'error':False,'reason':'Booking Confirmed','success':True,'id':pk  ,'driver':driverMapObject.driver_user_id.first_name,
-                'joint':each_joint.car_joint_id.name}]} , status = status.HTTP_201_CREATED)
+                'joint':each_joint.car_joint_id.name,'service_id':request_service_id,'time_slot_id':time_slot.id,'request_status':newRequest.current_status.current_status}]} , status = status.HTTP_201_CREATED)
     return Response({'response':[{'error':True,'reason':'No Joints','success':False,'id':pk }]} , status = status.HTTP_201_CREATED)
