@@ -12,18 +12,24 @@ from Universal.models import Service_Type , Joint_Service_Mapping , Joint_Driver
 def cardetails(request, pk , format = None):
     #Get the details of Car for the user whose user id is sent as primary_key
     if request.method == 'GET':
+        print("==================== GET USER CAR DETAILS ====================")
         user_car_data  = UserCar.objects.filter(carownerid__userid = pk)
         returndata = []
+        print('----- user id  ---- ',pk)
         for row in user_car_data:
             tempDict = {}
-            tempDict['name'] = row.carbrand.car_brand
+            tempDict['brand'] = row.carbrand.car_brand
             tempDict['model'] = row.carmodel.car_model
             tempDict['regno'] = row.registration_number
             returndata.append(tempDict)
+            print(">>brand" , row.carbrand.car_brand)
+            print(">>model" , row.carmodel.car_model)
+            print(">>reg" , row.registration_number)
         #return Response(returndata)
         return Response({'response':[{'error':False,'reason':'','success':True,'id':pk,'responsedata':returndata}]} , status= status.HTTP_201_CREATED)
     #Add a new car for this User with primary key provided in request
     if(request.method == 'POST'):
+        print("==================== POST USER CAR DETAILS ====================")
         requestdata = request.data
         existUser = User.objects.get(userid = pk)
         phoneupdateresult = False
@@ -33,15 +39,15 @@ def cardetails(request, pk , format = None):
             return Response({'name':'NoUser'}, status.HTTP_400_BAD_REQUEST)
         newRegNumber = requestdata['registration_number']
         usermobile = requestdata['mobile_number']
-        print('usermobile')
-        print('usermobile is' , usermobile)
+        print('usermobile obrained in request is' , usermobile)
         try:
-            print('Updating Mobile for user')
+            print('>>>>Updating Mobile for user')
             existUser.joint_mobile = usermobile
             existUser.save()
             phoneupdateresult = True
+            print('----Updating mobile Success')
         except:
-            print('Updating mobile Failed')
+            print('----Updating mobile Failed')
             phoneupdateresult = False
 
         existCar = UserCar.objects.filter(carownerid__userid=pk).filter(registration_number=newRegNumber)
@@ -85,7 +91,7 @@ def cardetails(request, pk , format = None):
         except:
             return Response({'response':[{'error':True,'reason':'FailedToAdd','success':False,'id':existUser.userid,'phoneresult':phoneupdateresult }]} , status = status.HTTP_201_CREATED)
 
-        return Response({'response':[{'registration_number': newCarEntry.registration_number ,'name':existUser.first_name,'error':False,'reason':'CarAdded','success':True,'id':existUser.userid,'userstatus':existUser.user_status.user_status,'mobilebkEnd':usermobile ,'phoneresult':phoneupdateresult}]} , status = status.HTTP_201_CREATED)
+        return Response({'response':[{'registration_number': newCarEntry.registration_number ,'name':existUser.first_name,'error':False,'reason':'CarAdded','success':True,'id':existUser.userid,'user_status':existUser.user_status.user_status,'mobilebkEnd':usermobile ,'phoneresult':phoneupdateresult}]} , status = status.HTTP_201_CREATED)
 
 
 @api_view(['GET' ,'POST'])
@@ -106,7 +112,7 @@ def usersignup(request , format = None):
 
         elif existUser is not None:
             print('existUserID' , existUser[0].userid)
-            return Response({'response':[{'error':False,'reason':'UserExists','success':True,'id':existUser[0].userid ,'userstatus':existUser[0].user_status.user_status}]} , status = status.HTTP_201_CREATED)
+            return Response({'response':[{'error':False,'reason':'UserExists','success':True,'id':existUser[0].userid ,'user_status':existUser[0].user_status.user_status}]} , status = status.HTTP_201_CREATED)
             #if i rtrn  HTTP_400_BAD_REQUEST i dont get any data returned
         try:
             # if no duplicate data entry then save the data
@@ -336,7 +342,7 @@ def initreq(request , pk , format = None):
                 print('Request Placed -- New request id ' ,newRequest.id)
                 joint = Car_Joint.objects.get(id = each_joint.car_joint_id.id)
                 servicetype = Service_Type.objects.get(id = request_service_id)
-                newRequestAllocation = Request_Allocation(request_id = newRequest, car_joint_id = joint , service_type_id= servicetype)
+                newRequestAllocation = Request_Allocation(request_id = newRequest, car_joint_id = joint , service_type_id= servicetype , driver_id = driverMapObject.driver_user_id)
                 newRequestAllocation.save()
                 print('NewRequest Allocation id' , newRequestAllocation.id)
                 #increase joint allocation status(currently does not handler dates)
@@ -374,9 +380,37 @@ def initreq(request , pk , format = None):
                 newRequest.current_status = request_current_status
                 newRequest.save()
                 print('updated request')
+                print('updating user status to pending request ')
+                profilestatus = UserStatus.objects.get(user_status = 'RequestPending')
+                user.user_status = profilestatus
+                user.save()
+                print('Success Updated User Status to RequestPending')
+
 
 
 
                 return Response({'response':[{'error':False,'reason':'Booking Confirmed','success':True,'id':pk  ,'driver':driverMapObject.driver_user_id.first_name,
-                'joint':each_joint.car_joint_id.name,'service_id':request_service_id,'time_slot_id':time_slot.id,'request_status':newRequest.current_status.current_status}]} , status = status.HTTP_201_CREATED)
+                'joint':each_joint.car_joint_id.name,'service_id':request_service_id,'time_slot_id':time_slot.id,'request_status':newRequest.current_status.id,'request_date':newRequest.date}]} , status = status.HTTP_201_CREATED)
     return Response({'response':[{'error':True,'reason':'No Joints','success':False,'id':pk }]} , status = status.HTTP_201_CREATED)
+
+
+@api_view(['GET','POST'])
+def requeststatus_info(request , pk , format = None):
+    if request.method == 'POST':
+        print('Request Status GET Received')
+        requestdata = request.data
+        request_data_car_reg = requestdata['car_reg']
+        #find the request pending for this car_reg
+        # assumption only one request for user is ongoing - rest all are completed
+        try:
+            car = UserCar.objects.get(registration_number = request_data_car_reg)
+            print('obtained car data')
+            request_obj = Request.objects.get(user_car_id = car , current_status__id__lte=7)
+            print('obtained request data',request_obj.id)
+            #NOTES currently we are savinf service typ service type in Request Allocation , we should move it to request since it received from User
+            request_alloc_obj = Request_Allocation.objects.get(request_id = request_obj)
+        except:
+            print('error in Request Status')
+            return Response({'response':[{'error':True,'reason':'Unknown','success':False,'id':pk }]} , status = status.HTTP_201_CREATED)
+
+        return Response({'response':[{'error':False,'reason':'No Joints','success':True,'id':pk,'request_status':request_obj.current_status.id,'date':request_obj.date,'timeslot':request_obj.time_slot_id.id,'car_reg':car.registration_number,'carmodel':car.carmodel.car_model,'carbrand':car.carbrand.car_brand,'driverfirstname':request_alloc_obj.driver_id.first_name ,'driverlastname':request_alloc_obj.driver_id.last_name}]} , status = status.HTTP_201_CREATED)
