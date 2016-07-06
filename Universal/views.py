@@ -382,7 +382,7 @@ def initreq(request , pk , format = None):
                 print('updated request')
                 print('updating user status to pending request ')
                 profilestatus = UserStatus.objects.get(user_status = 'RequestPending')
-                user.user_status = profilestatus
+                user.current_status = profilestatus
                 user.save()
                 print('Success Updated User Status to RequestPending')
 
