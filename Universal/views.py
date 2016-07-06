@@ -381,8 +381,9 @@ def initreq(request , pk , format = None):
                 newRequest.save()
                 print('updated request')
                 print('updating user status to pending request ')
+                print('alok log ')
                 profilestatus = UserStatus.objects.get(user_status = 'RequestPending')
-                user.current_status = profilestatus
+                user.user_status = profilestatus
                 user.save()
                 print('Success Updated User Status to RequestPending')
 
