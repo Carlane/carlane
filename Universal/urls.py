@@ -8,5 +8,6 @@ urlpatterns = [
     #url(r'^request/(?P<pk>[0-9]+)/$', views.initiate_request),
     url(r'^slotscheck/(?P<pk>[0-9]+)/$', views.findSlotsForDate),
     url(r'^request/(?P<pk>[0-9]+)/$', views.initreq),
-    url(r'^requestatusinfo/(?P<pk>[0-9]+)/$',views.requeststatus_info)
+    url(r'^requestatusinfo/(?P<pk>[0-9]+)/$',views.requeststatus_info),
+    url(r'^driver_jobs/(?P<pk>[0-9]+)/$',views.driverjobdetails)
 ]

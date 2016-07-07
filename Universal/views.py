@@ -415,3 +415,69 @@ def requeststatus_info(request , pk , format = None):
             return Response({'response':[{'error':True,'reason':'Unknown','success':False,'id':pk }]} , status = status.HTTP_201_CREATED)
 
         return Response({'response':[{'error':False,'reason':'No Joints','success':True,'id':pk,'request_status':request_obj.current_status.id,'date':request_obj.date,'timeslot':request_obj.time_slot_id.id,'car_reg':car.registration_number,'carmodel':car.carmodel.car_model,'carbrand':car.carbrand.car_brand,'driverfirstname':request_alloc_obj.driver_id.first_name ,'driverlastname':request_alloc_obj.driver_id.last_name}]} , status = status.HTTP_201_CREATED)
+
+
+
+@api_view(['GET','POST'])
+def driverjobdetails(request , pk , format = None):
+    if request.method == 'GET':
+        try:
+            print("==================GOT DRIVER REQUEST===================");
+            driver = User.objects.get(userid = pk)
+            print("Driver Details " ,driver.first_name , driver.userid , driver.joint_mobile)
+            print(">>>>> GET DRIVER REQUESTS FROM REQUEST ALLOCATION")
+            driver_jobs=[]
+            driver_req_allocation_objs = Request_Allocation.objects.filter(driver_id = driver)
+            for req_alloc in driver_req_allocation_objs:
+                dictionary_req= {}
+                req_obj = req_alloc.request_id
+                print('Get Req Id')
+                dictionary_req['requestid'] = req_obj.id
+                print('Get Req time slot id')
+                dictionary_req['timeslotid'] = req_obj.time_slot_id.id
+                print('Get Req Time slot name')
+                dictionary_req['timeslotdisplay'] = req_obj.time_slot_id.display_name
+                print('Get Req Car Reg No')
+                dictionary_req['carno'] = req_obj.user_car_id.registration_number
+                print('Get Req User')
+                dictionary_req['username'] = req_obj.user_id.first_name
+                print('Get Req Status')
+                dictionary_req['reqstatus'] = req_obj.current_status.id
+                print('Get Req Date')
+                dictionary_req['date'] = req_obj.date
+                print('Get Req Car Joint')
+                carjoint = Car_Joint.objects.get(id = req_alloc.car_joint_id.id)
+                dictionary_req['joint'] = req_alloc.car_joint_id.name;
+                print('adding service id')
+                dictionary_req['serviceid'] = req_alloc.service_type_id.id
+                driver_jobs.append(dictionary_req)
+            return Response({'response':[{'error':False,'reason':'FetchedDetails','success':True,'id':pk,'responsedata':driver_jobs }]} , status = status.HTTP_201_CREATED)
+        except:
+            return Response({'response':[{'error':True,'reason':'Unknown','success':False,'id':pk }]} , status = status.HTTP_201_CREATED)
+    if request.method == 'POST':
+        print("==================POST DRIVER REQUEST===================");
+        try:
+            driver = User.objects.get(userid = pk)
+            print("Driver Details " ,driver.first_name , driver.userid , driver.joint_mobile)
+            print('Another Driver detail')
+            requestdata = request.data
+            print('Got request Data')
+            requestid_toupdate = requestdata['requestid']
+            print('Get Requestid' ,requestid_toupdate)
+            request_obj = Request.objects.get(id = requestid_toupdate)
+            print('Get Request Obj')
+            print('currentstatusid' , request_obj.current_status.id)
+            print('currentstatusid plus one' , request_obj.current_status.id +1)
+            print('get plus request obj')
+            newid = request_obj.current_status.id +1
+            print('new id is' , str(newid))
+            newstatus = Request_Status.objects.get(id = newid)
+            print('Get Request Status')
+            request_obj.current_status = newstatus
+            print('Updated Status')
+            request_obj.save()
+            print('Save')
+            return Response({'response':[{'error':False,'reason':'UpdatedStatus','success':False,'id':pk,'newstatusid':newstatus.id }]} , status = status.HTTP_201_CREATED)
+        except:
+            print('Error')
+            return Response({'response':[{'error':True,'reason':'Unknown','success':False,'id':pk }]} , status = status.HTTP_201_CREATED)
