@@ -406,7 +406,12 @@ def requeststatus_info(request , pk , format = None):
         try:
             car = UserCar.objects.get(registration_number = request_data_car_reg)
             print('obtained car data')
-            request_obj = Request.objects.get(user_car_id = car , current_status__id__lte=7)
+            print('print reg',request_data_car_reg)
+            try:
+                request_obj = Request.objects.get(user_car_id = car , current_status__id__lte=7)
+            except:
+                print('No Ongoing Request So Handling in Exception Handler')
+                return Response({'response':[{'error':False,'reason':'No OnGoing Request','success':True,'id':pk,'request_status':8 }]} , status = status.HTTP_201_CREATED)
             print('obtained request data',request_obj.id)
             #NOTES currently we are savinf service typ service type in Request Allocation , we should move it to request since it received from User
             request_alloc_obj = Request_Allocation.objects.get(request_id = request_obj)
@@ -427,7 +432,7 @@ def driverjobdetails(request , pk , format = None):
             print("Driver Details " ,driver.first_name , driver.userid , driver.joint_mobile)
             print(">>>>> GET DRIVER REQUESTS FROM REQUEST ALLOCATION")
             driver_jobs=[]
-            driver_req_allocation_objs = Request_Allocation.objects.filter(driver_id = driver)
+            driver_req_allocation_objs = Request_Allocation.objects.filter(driver_id = driver , request_id__current_status__id__lte=7)
             for req_alloc in driver_req_allocation_objs:
                 dictionary_req= {}
                 req_obj = req_alloc.request_id
@@ -451,6 +456,7 @@ def driverjobdetails(request , pk , format = None):
                 print('adding service id')
                 dictionary_req['serviceid'] = req_alloc.service_type_id.id
                 driver_jobs.append(dictionary_req)
+            print('size of dic req',len(driver_jobs))
             return Response({'response':[{'error':False,'reason':'FetchedDetails','success':True,'id':pk,'responsedata':driver_jobs }]} , status = status.HTTP_201_CREATED)
         except:
             return Response({'response':[{'error':True,'reason':'Unknown','success':False,'id':pk }]} , status = status.HTTP_201_CREATED)
@@ -471,13 +477,34 @@ def driverjobdetails(request , pk , format = None):
             print('get plus request obj')
             newid = request_obj.current_status.id +1
             print('new id is' , str(newid))
-            newstatus = Request_Status.objects.get(id = newid)
-            print('Get Request Status')
-            request_obj.current_status = newstatus
-            print('Updated Status')
-            request_obj.save()
-            print('Save')
-            return Response({'response':[{'error':False,'reason':'UpdatedStatus','success':False,'id':pk,'newstatusid':newstatus.id }]} , status = status.HTTP_201_CREATED)
+
+            if newid <= 8:
+                print('less than 8')
+                newstatus = Request_Status.objects.get(id = newid)
+                print('Get Request Status')
+                request_obj.current_status = newstatus
+                print('Updated Status')
+                request_obj.save()
+                print('Save')
+            else:
+                if newid > 8:
+                    print('status is 8')
+                    newstatus = request_obj.current_status
+                    print('all okay')
+
+
+            #if status is now completed we should now do some extra process
+            #1. Change User status here , and send appropriate response so that userapp will also change user status
+            #2. Do we need to update anything for driver ??
+            if newid == 8:
+                print("Request is completed so change user status , Getting Uuser id from Request")
+                user_requester = request_obj.user_id
+                user_requester.user_status = UserStatus.objects.get(id = 2)
+                user_requester.save()
+                print('User Status Update to Car Profile')
+
+
+            return Response({'response':[{'error':False,'reason':'UpdatedStatus','success':False,'id':pk,'newstatusid':newstatus.id}]} , status = status.HTTP_201_CREATED)
         except:
             print('Error')
             return Response({'response':[{'error':True,'reason':'Unknown','success':False,'id':pk }]} , status = status.HTTP_201_CREATED)
