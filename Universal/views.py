@@ -4,9 +4,42 @@ from rest_framework.decorators import api_view
 from rest_framework.response import Response
 import datetime
 from datetime import timedelta
+from django.http import HttpResponse
+from django.template import Context
+from django.template.loader import render_to_string, get_template
+from django.core.mail import EmailMessage
+import os
 
 from Universal.models import CarBrands , User , UserCar , User_Type , CarModels , Car_Joint, User_Address , UserStatus , Request,Request_Allocation , Request_Status
 from Universal.models import Service_Type , Joint_Service_Mapping , Joint_Driver_Mapping , Driver_Allocation_Status , TimeSlot , Joint_Allocation_Status
+
+
+def send_welcome_email(request , receiver , mailsubject , name):
+    print('EMAILING')
+    #print(os.path.dirname(os.path.abspath(__file__)))
+    #print(os.getcwd())
+    try:
+        subject = mailsubject
+        to = [receiver]
+        from_email = 'triton.core.tech@gmail.com'
+        ctx = {
+        'user': name
+        }
+
+        message = get_template('Universal/email/NOTIFICATIONBLUE.html').render(ctx)
+        msg = EmailMessage(subject, message, to=to, from_email=from_email)
+        msg.content_subtype = 'html'
+        msg.send()
+    except Exception as inst:
+        print('Error in Emailing')
+        print(type(inst))
+        print(inst.args)
+        print(inst)
+        print('Error End Email')
+
+
+
+
 # Create your views here.
 @api_view(['GET' , 'POST'])
 def cardetails(request, pk , format = None):
@@ -120,6 +153,7 @@ def usersignup(request , format = None):
             newuserstatus = UserStatus.objects.get(user_status = 'NewProfile')
             newUserEntry = User(userTypeId=usertype[0] , first_name = fname , last_name = lname, email = email , joint_mobile=mobile,access_token = token,is_active = True , status = 'Normal',user_status = newuserstatus)
             newUserEntry.save()
+            send_welcome_email(request ,email,'Welcome to Carlane',fname)
         except User.DoesNotExist:
             return Response({'response':[{'error':True,'reason':'FailedtoAdded','success':False,'id':-1, 'name':''}]}, status = status.HTTP_400_BAD_REQUEST)
         print('New User Status',newUserEntry.user_status.user_status)
