@@ -8,11 +8,87 @@ from django.http import HttpResponse
 from django.template import Context
 from django.template.loader import render_to_string, get_template
 from django.core.mail import EmailMessage
+from email.mime.image import MIMEImage
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
 import os
+from django.core.mail import EmailMultiAlternatives
 
 from Universal.models import CarBrands , User , UserCar , User_Type , CarModels , Car_Joint, User_Address , UserStatus , Request,Request_Allocation , Request_Status
 from Universal.models import Service_Type , Joint_Service_Mapping , Joint_Driver_Mapping , Driver_Allocation_Status , TimeSlot , Joint_Allocation_Status
 
+def send_welcome_email2(request , receiver , mailsubject , name):
+    # Load the image you want to send as bytes
+    img_data = open('carlane.png', 'rb').read()
+    print('iamge data read')
+    # Create a "related" message container that will hold the HTML
+    # message and the image. These are "related" (not "alternative")
+    # because they are different, unique parts of the HTML message,
+    # not alternative (html vs. plain text) views of the same content.
+    html_part = MIMEMultipart(_subtype='related')
+    print('html part okay')
+    # Create the body with HTML. Note that the image, since it is inline, is
+    # referenced with the URL cid:myimage... you should take care to make
+    # "myimage" unique
+    body = MIMEText('<p>Hello <img src="cid:myimage" /></p>', _subtype='html')
+    html_part.attach(body)
+    print('html part okay 2')
+    # Now create the MIME container for the image
+    img = MIMEImage(img_data, 'png')
+    img.add_header('Content-Id', '<myimage>')  # angle brackets are important
+    img.add_header("Content-Disposition", "inline", filename="myimage") # David Hess recommended this edit
+    html_part.attach(img)
+    # Configure and send an EmailMessage
+    print('html part okay 3')
+    # Note we are passing None for the body (the 2nd parameter). You could pass plain text
+    # to create an alternative part for this message
+    msg = EmailMessage('Subject Line', 'TEXT SENDING', 'triton.core.tech@gmail.com', ['aloksingh.itbhu@gmail.com'])
+    msg.attach(html_part) # Attach the raw MIMEBase descendant. This is a public method on EmailMessage
+    print('html part okay 3')
+    msg.send()
+
+
+def send_welcome_email4(request , receiver , mailsubject , name):
+    d = Context({ 'user': name })
+    html_content = render_to_string('Universal/email/NOTIFICATIONBLUE.html', d)
+    #text_content = render_to_string('foo.txt', context)
+    msg = EmailMultiAlternatives(mailsubject, 'text_content',
+                                 receiver, ['aloksingh.itbhu@gmail.com'])
+
+    msg.attach_alternative(html_content, "text/html")
+
+    msg.mixed_subtype = 'related'
+
+    for f in ['templates/Universal/email/images/PROMO-GREEN2_01_02.jpg', 'templates/Universal/email/images/PROMO-GREEN2_01_01.jpg']:
+        fp = open(os.path.join(os.path.dirname(__file__), f), 'rb')
+        msg_img = MIMEImage(fp.read())
+        fp.close()
+        head, tail = os.path.split(f)
+        print('tail ', tail)
+        msg_img.add_header('Content-ID', '<{}>'.format(tail))
+        msg.attach(msg_img)
+
+    msg.send()
+
+
+def send_welcome_email3(request , receiver , mailsubject , name):
+    plaintext = 'This is an important message.'
+    htmly     = get_template('Universal/email/NOTIFICATIONBLUE.html')
+    d = Context({ 'user': name })
+    html_content = render_to_string('Universal/email/NOTIFICATIONBLUE.html', d)
+
+    subject, from_email, to = 'hello', 'triton.core.tech@gmail.com', 'aloksingh.itbhu@gmail.com'
+    #text_content = plaintext.render(d)
+    html_content = htmly.render(d)
+    msg = EmailMultiAlternatives(subject, plaintext, from_email, [to])
+    msg.attach_alternative(html_content, "text/html")
+    msg.mixed_subtype = 'related'
+    img_data = open('carlane.png', 'rb').read()
+    img = MIMEImage(img_data, 'png')
+    img.add_header('Content-Id', '<myimage>')  # angle brackets are important
+    img.add_header("Content-Disposition", "inline", filename="myimage") # David Hess recommended this edit
+    msg.attach(img)
+    msg.send()
 
 def send_welcome_email(request , receiver , mailsubject , name):
     print('EMAILING')
@@ -36,8 +112,6 @@ def send_welcome_email(request , receiver , mailsubject , name):
         print(inst.args)
         print(inst)
         print('Error End Email')
-
-
 
 
 # Create your views here.
@@ -153,7 +227,7 @@ def usersignup(request , format = None):
             newuserstatus = UserStatus.objects.get(user_status = 'NewProfile')
             newUserEntry = User(userTypeId=usertype[0] , first_name = fname , last_name = lname, email = email , joint_mobile=mobile,access_token = token,is_active = True , status = 'Normal',user_status = newuserstatus)
             newUserEntry.save()
-            send_welcome_email(request ,email,'Welcome to Carlane',fname)
+            send_welcome_email4(request ,email,'Welcome to Carlane',fname)
         except User.DoesNotExist:
             return Response({'response':[{'error':True,'reason':'FailedtoAdded','success':False,'id':-1, 'name':''}]}, status = status.HTTP_400_BAD_REQUEST)
         print('New User Status',newUserEntry.user_status.user_status)
