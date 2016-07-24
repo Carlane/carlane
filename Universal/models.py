@@ -184,6 +184,8 @@ class Request(models.Model):
 	time_slot_id = models.ForeignKey(TimeSlot)
 	user_car_id = models.ForeignKey(UserCar)
 	date = models.DateField(auto_now = False , auto_now_add = False , blank = False , null = True)
+	latt = models.DecimalField(max_digits = 30 , decimal_places = 20)
+	longg = models.DecimalField(max_digits = 30 , decimal_places = 20)
 	current_status = models.ForeignKey(Request_Status , default = None , null = True)
 
 

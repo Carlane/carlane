@@ -401,6 +401,8 @@ def initreq(request , pk , format = None):
     request_service_id = requestdata['serviceid']
     request_slot_id= requestdata['timeslot_id']
     request_car =requestdata['carno']
+    request_latt= requestdata['latt']
+    request_longg = requestdata['longg']
     print('Printing data received in Request service , slot , car', request_service_id,    request_slot_id,request_car)
 
     days_ahead_of_current_date = requestdata['daysahead']
@@ -445,7 +447,7 @@ def initreq(request , pk , format = None):
                 user_car = UserCar.objects.get(registration_number = request_car)
                 request_current_status = Request_Status.objects.get(current_status ='request_init')
                 print("request current status" ,request_current_status.current_status)
-                newRequest = Request(user_id = user , time_slot_id = time_slot ,user_car_id = user_car , date = request_Date , current_status = request_current_status)
+                newRequest = Request(user_id = user , time_slot_id = time_slot ,user_car_id = user_car , date = request_Date , current_status = request_current_status , latt = request_latt , longg = request_longg)
                 newRequest.save()
                 print('Request Placed -- New request id ' ,newRequest.id)
                 joint = Car_Joint.objects.get(id = each_joint.car_joint_id.id)
@@ -499,7 +501,7 @@ def initreq(request , pk , format = None):
 
 
                 return Response({'response':[{'error':False,'reason':'Booking Confirmed','success':True,'id':pk  ,'driver':driverMapObject.driver_user_id.first_name,
-                'joint':each_joint.car_joint_id.name,'service_id':request_service_id,'time_slot_id':time_slot.id,'request_status':newRequest.current_status.id,'request_date':newRequest.date}]} , status = status.HTTP_201_CREATED)
+                'joint':each_joint.car_joint_id.name,'driverphone':driverMapObject.driver_user_id.joint_mobile,'service_id':request_service_id,'time_slot_id':time_slot.id,'request_status':newRequest.current_status.id,'request_date':newRequest.date}]} , status = status.HTTP_201_CREATED)
     return Response({'response':[{'error':True,'reason':'No Joints','success':False,'id':pk }]} , status = status.HTTP_201_CREATED)
 
 
@@ -527,7 +529,7 @@ def requeststatus_info(request , pk , format = None):
             print('error in Request Status')
             return Response({'response':[{'error':True,'reason':'Unknown','success':False,'id':pk }]} , status = status.HTTP_201_CREATED)
 
-        return Response({'response':[{'error':False,'reason':'No Joints','success':True,'id':pk,'request_status':request_obj.current_status.id,'date':request_obj.date,'timeslot':request_obj.time_slot_id.id,'car_reg':car.registration_number,'carmodel':car.carmodel.car_model,'carbrand':car.carbrand.car_brand,'driverfirstname':request_alloc_obj.driver_id.first_name ,'driverlastname':request_alloc_obj.driver_id.last_name}]} , status = status.HTTP_201_CREATED)
+        return Response({'response':[{'error':False,'reason':'No Joints','success':True,'id':pk,'request_status':request_obj.current_status.id,'date':request_obj.date,'timeslot':request_obj.time_slot_id.id,'car_reg':car.registration_number,'carmodel':car.carmodel.car_model,'carbrand':car.carbrand.car_brand,'drivermobile':request_alloc_obj.driver_id.joint_mobile,'driverfirstname':request_alloc_obj.driver_id.first_name ,'driverlastname':request_alloc_obj.driver_id.last_name}]} , status = status.HTTP_201_CREATED)
 
 
 
@@ -554,6 +556,8 @@ def driverjobdetails(request , pk , format = None):
                 dictionary_req['carno'] = req_obj.user_car_id.registration_number
                 print('Get Req User')
                 dictionary_req['username'] = req_obj.user_id.first_name
+                print('Get User Mobile')
+                dictionary_req['customer mobile'] = req_obj.user_id.joint_mobile
                 print('Get Req Status')
                 dictionary_req['reqstatus'] = req_obj.current_status.id
                 print('Get Req Date')
@@ -563,7 +567,14 @@ def driverjobdetails(request , pk , format = None):
                 dictionary_req['joint'] = req_alloc.car_joint_id.name;
                 print('adding service id')
                 dictionary_req['serviceid'] = req_alloc.service_type_id.id
+                print('adding latt')
+                dictionary_req['latt'] = req_obj.latt
+                print('adding longg')
+                dictionary_req['longg'] = req_obj.longg
+
                 driver_jobs.append(dictionary_req)
+
+
             print('size of dic req',len(driver_jobs))
             return Response({'response':[{'error':False,'reason':'FetchedDetails','success':True,'id':pk,'responsedata':driver_jobs }]} , status = status.HTTP_201_CREATED)
         except:
