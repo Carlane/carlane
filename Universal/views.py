@@ -13,6 +13,8 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 import os
 from django.core.mail import EmailMultiAlternatives
+import requests#to send python post request
+import json
 
 from Universal.models import CarBrands , User , UserCar , User_Type , CarModels , Car_Joint, User_Address , UserStatus , Request,Request_Allocation , Request_Status
 from Universal.models import Service_Type , Joint_Service_Mapping , Joint_Driver_Mapping , Driver_Allocation_Status , TimeSlot , Joint_Allocation_Status
@@ -38,12 +40,7 @@ def send_welcome_email2(request , receiver , mailsubject , name):
     img.add_header('Content-Id', '<myimage>')  # angle brackets are important
     img.add_header("Content-Disposition", "inline", filename="myimage") # David Hess recommended this edit
     html_part.attach(img)
-    # Configure and send an EmailMessage
-    print('html part okay 3')
-    # Note we are passing None for the body (the 2nd parameter). You could pass plain text
-    # to create an alternative part for this message
-    msg = EmailMessage('Subject Line', 'TEXT SENDING', 'triton.core.tech@gmail.com', ['aloksingh.itbhu@gmail.com'])
-    msg.attach(html_part) # Attach the raw MIMEBase descendant. This is a public method on EmailMessage
+    print('notification preparing')
     print('html part okay 3')
     msg.send()
 
@@ -112,6 +109,20 @@ def send_welcome_email(request , receiver , mailsubject , name):
         print(inst.args)
         print(inst)
         print('Error End Email')
+
+def sendnotification(token , title , message):
+    fireurl = 'https://fcm.googleapis.com/fcm/send'
+    body = 'Test Message'
+    print('user token',token)
+    notification = {}
+    notification['message'] = message
+    notification['title'] = title
+    arraytosend = {'to':token,'data':notification}
+    headers = {"Content-Type":"application/json","Authorization":"key=AIzaSyDyFp7dzNe5DD7Q3MvcCAk0a-xLxX4Xut0"}
+    r = requests.post(fireurl , data =  json.dumps(arraytosend) , headers = headers)
+    print('notification sent' , r.content)
+
+
 
 
 # Create your views here.
@@ -195,6 +206,7 @@ def cardetails(request, pk , format = None):
             print('Car Add Existing User Sign Up',profilestatus.user_status)
             existUser.user_status = profilestatus
             existUser.save()
+            sendnotification(existUser.firebase_token ,'Carlane ' , 'You added a Car')
         except:
             return Response({'response':[{'error':True,'reason':'FailedToAdd','success':False,'id':existUser.userid,'phoneresult':phoneupdateresult }]} , status = status.HTTP_201_CREATED)
 
@@ -211,6 +223,8 @@ def usersignup(request , format = None):
         email = userdata['email']
         mobile = userdata['mobile']
         token = userdata['token']
+        firebase_token = userdata['firebasetoken']
+        print('firebasetoken sign in' , firebase_token)
         #validate if the same email or phone is present in the database
         existUser = User.objects.filter(email=email ,access_token = token)
         print('existUser' , existUser)
@@ -225,9 +239,11 @@ def usersignup(request , format = None):
             # if no duplicate data entry then save the data
             usertype = User_Type.objects.filter(name='Customer')
             newuserstatus = UserStatus.objects.get(user_status = 'NewProfile')
-            newUserEntry = User(userTypeId=usertype[0] , first_name = fname , last_name = lname, email = email , joint_mobile=mobile,access_token = token,is_active = True , status = 'Normal',user_status = newuserstatus)
+            newUserEntry = User(userTypeId=usertype[0] , first_name = fname , last_name = lname, email = email , joint_mobile=mobile,access_token = token,firebase_token = firebase_token ,is_active = True , status = 'Normal',user_status = newuserstatus)
             newUserEntry.save()
+            print('notification preparing')
             send_welcome_email4(request ,email,'Welcome to Carlane',fname)
+            sendnotification(firebase_token, 'Carlane Welcome' , 'Thanks for Signing Up')
         except User.DoesNotExist:
             return Response({'response':[{'error':True,'reason':'FailedtoAdded','success':False,'id':-1, 'name':''}]}, status = status.HTTP_400_BAD_REQUEST)
         print('New User Status',newUserEntry.user_status.user_status)
@@ -555,9 +571,9 @@ def driverjobdetails(request , pk , format = None):
                 print('Get Req Car Reg No')
                 dictionary_req['carno'] = req_obj.user_car_id.registration_number
                 print('Get Req User')
-                dictionary_req['username'] = req_obj.user_id.first_name
+                dictionary_req['customer_name'] = req_obj.user_id.first_name
                 print('Get User Mobile')
-                dictionary_req['customer mobile'] = req_obj.user_id.joint_mobile
+                dictionary_req['customer_mobile'] = req_obj.user_id.joint_mobile
                 print('Get Req Status')
                 dictionary_req['reqstatus'] = req_obj.current_status.id
                 print('Get Req Date')
@@ -621,6 +637,8 @@ def driverjobdetails(request , pk , format = None):
                 user_requester.user_status = UserStatus.objects.get(id = 2)
                 user_requester.save()
                 print('User Status Update to Car Profile')
+
+            sendnotification(request_obj.user_id.firebase_token,'Carlane Service Status' , 'Your Service Status is Updated.')
 
 
             return Response({'response':[{'error':False,'reason':'UpdatedStatus','success':False,'id':pk,'newstatusid':newstatus.id}]} , status = status.HTTP_201_CREATED)

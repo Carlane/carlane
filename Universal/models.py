@@ -34,6 +34,7 @@ class User(models.Model):
 	mobile_regex = RegexValidator(regex=r'^(\+?\d{1,4}[\s-])?(?!0+\s+,?$)\d{10}\s*,?$', message=" Enter a Valid Mobile Number")
 	joint_mobile = models.CharField(validators=[mobile_regex] , blank = True , max_length = 20)
 	access_token = models.CharField(blank = False , max_length = 400,default = "")
+	firebase_token = models.CharField(blank = False , max_length = 400,default = "")
 	is_active = models.BooleanField(default = True)
 	status = models.CharField(blank = True , max_length = 50)
 	user_status = models.ForeignKey(UserStatus,blank = False, null = True)
