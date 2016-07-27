@@ -120,7 +120,7 @@ EMAIL_USE_TLS = True
 EMAIL_HOST = 'smtp.gmail.com'
 EMAIL_PORT = 587
 EMAIL_HOST_USER = 'triton.core.tech@gmail.com'
-EMAIL_HOST_PASSWORD = 'SamajhP1!'
+EMAIL_HOST_PASSWORD = '(Hilti123)$'
 DEFAULT_FROM_EMAIL = 'aloksingh.itbhu@gmail.com'
 DEFAULT_TO_EMAIL = 'abhimili@gmail.com'
 
@@ -129,3 +129,4 @@ DEFAULT_TO_EMAIL = 'abhimili@gmail.com'
 # https://docs.djangoproject.com/en/1.9/howto/static-files/
 
 STATIC_URL = '/static/'
+FIREBASE_URL = 'https://myapplication-14924.firebaseio.com'
