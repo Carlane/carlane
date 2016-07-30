@@ -233,6 +233,10 @@ def usersignup(request , format = None):
 
         elif existUser is not None:
             print('existUserID' , existUser[0].userid)
+            existUser.firebase_token = firebase_token
+            print('Existing Users New firebase_token Token is ',existUser.firebase_token)
+            existUser.save()
+            print('firebase save OK')
             return Response({'response':[{'error':False,'reason':'UserExists','success':True,'id':existUser[0].userid ,'user_status':existUser[0].user_status.user_status}]} , status = status.HTTP_201_CREATED)
             #if i rtrn  HTTP_400_BAD_REQUEST i dont get any data returned
         try:
@@ -420,6 +424,8 @@ def initreq(request , pk , format = None):
     request_latt= requestdata['latt']
     request_longg = requestdata['longg']
     print('Printing data received in Request service , slot , car', request_service_id,    request_slot_id,request_car)
+    print('Lattitude' , request_latt)
+    print('Lattitude' , request_longg)
 
     days_ahead_of_current_date = requestdata['daysahead']
     print('days ahead from current date' , days_ahead_of_current_date)
@@ -583,9 +589,9 @@ def driverjobdetails(request , pk , format = None):
                 dictionary_req['joint'] = req_alloc.car_joint_id.name;
                 print('adding service id')
                 dictionary_req['serviceid'] = req_alloc.service_type_id.id
-                print('adding latt')
+                print('adding latt' , req_obj.latt)
                 dictionary_req['latt'] = req_obj.latt
-                print('adding longg')
+                print('adding longg' , req_obj.longg)
                 dictionary_req['longg'] = req_obj.longg
 
                 driver_jobs.append(dictionary_req)
