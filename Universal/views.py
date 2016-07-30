@@ -233,9 +233,9 @@ def usersignup(request , format = None):
 
         elif existUser is not None:
             print('existUserID' , existUser[0].userid)
-            existUser.firebase_token = firebase_token
-            print('Existing Users New firebase_token Token is ',existUser.firebase_token)
-            existUser.save()
+            existUser[0].firebase_token = firebase_token
+            print('Existing Users New firebase_token Token is ',existUser[0].firebase_token)
+            existUser[0].save()
             print('firebase save OK')
             return Response({'response':[{'error':False,'reason':'UserExists','success':True,'id':existUser[0].userid ,'user_status':existUser[0].user_status.user_status}]} , status = status.HTTP_201_CREATED)
             #if i rtrn  HTTP_400_BAD_REQUEST i dont get any data returned
