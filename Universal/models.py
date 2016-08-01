@@ -177,6 +177,7 @@ class Request_Status(models.Model):
 	id = models.AutoField(primary_key = True)
 	current_status = models.CharField(max_length = 50)
 
+
 #we need date in request or request allocation , we need service id in this , this object should contain all info that is sent by the user
 #Need to discuss with wardu if we should save Service Type in the Request object instead of request allocation
 class Request(models.Model):
@@ -189,6 +190,13 @@ class Request(models.Model):
 	longg = models.DecimalField(max_digits = 30 , decimal_places = 20)
 	current_status = models.ForeignKey(Request_Status , default = None , null = True)
 
+class Request_Feedback(models.Model):
+	id =  models.AutoField(primary_key = True)
+	washrating = models.DecimalField(max_digits= 3,decimal_places =1)
+	driverrating = models.DecimalField(max_digits= 3,decimal_places =1)
+	overallrating = models.DecimalField(max_digits= 3,decimal_places =1)
+	feedback_text = models.CharField(max_length=550)
+	request_id = models.ForeignKey(Request , default = None , null = True)
 
 #this should contain the information that is allocated by the system for a given request
 class Request_Allocation(models.Model):

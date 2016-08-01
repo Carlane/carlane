@@ -15,9 +15,10 @@ import os
 from django.core.mail import EmailMultiAlternatives
 import requests#to send python post request
 import json
+from decimal import Decimal
 
 from Universal.models import CarBrands , User , UserCar , User_Type , CarModels , Car_Joint, User_Address , UserStatus , Request,Request_Allocation , Request_Status
-from Universal.models import Service_Type , Joint_Service_Mapping , Joint_Driver_Mapping , Driver_Allocation_Status , TimeSlot , Joint_Allocation_Status
+from Universal.models import Service_Type , Joint_Service_Mapping , Joint_Driver_Mapping , Driver_Allocation_Status , TimeSlot , Joint_Allocation_Status , Request_Feedback
 
 def send_welcome_email2(request , receiver , mailsubject , name):
     # Load the image you want to send as bytes
@@ -576,6 +577,10 @@ def driverjobdetails(request , pk , format = None):
                 dictionary_req['timeslotdisplay'] = req_obj.time_slot_id.display_name
                 print('Get Req Car Reg No')
                 dictionary_req['carno'] = req_obj.user_car_id.registration_number
+                print('Get User Car Brand ')
+                dictionary_req['carbrand'] = req_obj.user_car_id.carbrand.car_brand
+                print('Get User Car Model')
+                dictionary_req['carmodel'] = req_obj.user_car_id.carmodel.car_model
                 print('Get Req User')
                 dictionary_req['customer_name'] = req_obj.user_id.first_name
                 print('Get User Mobile')
@@ -627,27 +632,66 @@ def driverjobdetails(request , pk , format = None):
                 print('Updated Status')
                 request_obj.save()
                 print('Save')
+                sendnotification(request_obj.user_id.firebase_token,'Carlane Service Status' , 'Your Service Status is Updated.')
             else:
                 if newid > 8:
-                    print('status is 8')
-                    newstatus = request_obj.current_status
-                    print('all okay')
+                    print('status is 8 , move it to feedback pending')
+                    print('all okay Request Status is Pending')
 
 
             #if status is now completed we should now do some extra process
             #1. Change User status here , and send appropriate response so that userapp will also change user status
             #2. Do we need to update anything for driver ??
-            if newid == 8:
-                print("Request is completed so change user status , Getting Uuser id from Request")
-                user_requester = request_obj.user_id
-                user_requester.user_status = UserStatus.objects.get(id = 2)
-                user_requester.save()
-                print('User Status Update to Car Profile')
+            #if newid == 8:
+                #print("Request is completed so change user status , Getting Uuser id from Request")
+                #user_requester = request_obj.user_id
+                #user_requester.user_status = UserStatus.objects.get(id = 2)
+                #user_requester.save()
+                #print('User Status Update to Car Profile')
 
-            sendnotification(request_obj.user_id.firebase_token,'Carlane Service Status' , 'Your Service Status is Updated.')
+
 
 
             return Response({'response':[{'error':False,'reason':'UpdatedStatus','success':False,'id':pk,'newstatusid':newstatus.id}]} , status = status.HTTP_201_CREATED)
         except:
             print('Error')
             return Response({'response':[{'error':True,'reason':'Unknown','success':False,'id':pk }]} , status = status.HTTP_201_CREATED)
+
+
+
+@api_view(['GET','POST'])
+def submitfeedback(request , pk , format = None):
+    if request.method == 'POST':
+        print('Feedback Values Status GET Received')
+        requestdata = request.data
+        driverrating = requestdata['driverrating']
+        washrating = requestdata['washrating']
+        overallrating = requestdata['overallrating']
+        feedback_text = requestdata['feedback']
+        #find the request pending for this car_reg
+        # assumption only one request for user is ongoing - rest all are completed
+        try:
+            print('Getting Request Object')
+            request_obj = Request.objects.get(user_id = pk , current_status__id = 8)
+            print('obtained request object ',request_obj.id)
+            print('getting feedback')
+            newfeedback = Request_Feedback(driverrating = float(driverrating) , washrating = float(washrating), overallrating = float(overallrating) , feedback_text = feedback_text , request_id = request_obj)
+            newfeedback.save()
+            all_completed_status = 9
+            newstatus = Request_Status.objects.get(id = all_completed_status)
+            request_obj.current_status = newstatus
+            request_obj.save()
+            print('feedback saved')
+            print("Request is completed so change user status , Getting Uuser id from Request")
+            user_requester = request_obj.user_id
+            user_requester.user_status = UserStatus.objects.get(id = 2)
+            user_requester.save()
+            print('User Status Update to Car Profile')
+        except Exception as inst:
+            print('error in Request Status')
+            print(type(inst))
+            print(inst.args)
+            print(inst)
+            return Response({'response':[{'error':True,'reason':'Unknown','success':False,'id':pk }]} , status = status.HTTP_201_CREATED)
+
+        return Response({'response':[{'error':False,'reason':'No Joints','success':True,'id':pk,'feedbackid':newfeedback.id}]} , status = status.HTTP_201_CREATED)
