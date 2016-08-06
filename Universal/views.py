@@ -677,7 +677,7 @@ def submitfeedback(request , pk , format = None):
             print('getting feedback')
             newfeedback = Request_Feedback(driverrating = float(driverrating) , washrating = float(washrating), overallrating = float(overallrating) , feedback_text = feedback_text , request_id = request_obj)
             newfeedback.save()
-            all_completed_status = 9
+            all_completed_status = 10
             newstatus = Request_Status.objects.get(id = all_completed_status)
             request_obj.current_status = newstatus
             request_obj.save()
