@@ -693,6 +693,52 @@ def driverjobdetails(request , pk , format = None):
             print('Error')
             return Response({'response':[{'error':True,'reason':'Unknown','success':False,'id':pk }]} , status = status.HTTP_201_CREATED)
 
+@api_view(['GET','POST'])
+def cancelrequest(request , pk , format = None):
+    if request.method == 'POST':
+        print("===================== CANCEL ORDER =====================================")
+        requestdata = request.data
+        try:
+            who_requested  = User.objects.get(userid = pk)
+            print('cancel request submitted by ',who_requested.first_name)
+            print('Getting Request Object')
+            request_obj = Request.objects.get(user_id = pk , current_status__id__lte = 4)
+            print("Some log to check request object")
+            if request_obj is None:
+                print("No Request to Cancel")
+                return Response({'response':[{'error':True,'reason':'No Request To Cancel','success':False,'id':pk }]} , status = status.HTTP_201_CREATED)
+            else:
+                print("Cancelling the Request")
+                newstatus = Request_Status.objects.get(id = 11)
+                request_obj.current_status = newstatus
+                request_obj.save()
+                #update user status back to carprofile
+                user_requester = request_obj.user_id
+                user_requester.user_status = UserStatus.objects.get(id = 2)
+                user_requester.save()
+                #todo update driver allocation status and joint alloecation status
+                driver_allocation = Driver_Allocation_Status.objects.get(date = request_obj.date , time_slot_id = request_obj.time_slot_id)
+                print("updating driver allocation")
+                driver_allocation.current_count -=1
+                driver_allocation.save()
+                print("driver allocation update SUCCESS")
+                print("Updating Joint Allocation Status")
+                request_alloc = Request_Allocation.objects.get(request_id = request_obj.id)
+                joint_allocation = Joint_Allocation_Status.objects.get(date = request_obj.date, car_joint_id = request_alloc.car_joint_id, service_type_id = request_alloc.service_type_id)
+                joint_allocation.current_count -=1
+                joint_allocation.save()
+                print("Joint Allocation Status update SUCCESS")
+        except Exception as inst:
+            print('error in cancel Status')
+            print(type(inst))
+            print(inst.args)
+            print(inst)
+            return Response({'response':[{'error':True,'reason':'Exception','success':False,'id':pk }]} , status = status.HTTP_201_CREATED)
+
+        return Response({'response':[{'error':False,'reason':'CancelSuccess','success':True,'id':pk }]} , status = status.HTTP_201_CREATED)
+
+
+
 
 
 @api_view(['GET','POST'])
