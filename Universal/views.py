@@ -780,3 +780,48 @@ def submitfeedback(request , pk , format = None):
             return Response({'response':[{'error':True,'reason':'Unknown','success':False,'id':pk }]} , status = status.HTTP_201_CREATED)
 
         return Response({'response':[{'error':False,'reason':'No Joints','success':True,'id':pk,'feedbackid':newfeedback.id}]} , status = status.HTTP_201_CREATED)
+
+@api_view(['GET','POST'])
+def getuserrequests(request , pk , format = None):
+    print("================================ GET USER REQUEST ====================================")
+    if request.method == 'GET':
+        requestdata = request.data
+        try:
+            who_requested  = User.objects.get(userid = pk)
+            print('feedback submitted by ',who_requested.first_name)
+            print('Getting Request Object')
+            all_requests = Request.objects.filter(user_id = pk)
+            request_list = []
+            for each_request in all_requests:
+                request_map = {}
+                request_alloc_obj = Request_Allocation.objects.get(request_id = each_request)
+
+                request_map['time_slot_id'] = each_request.time_slot_id.id
+                request_map['date'] = each_request.date
+                request_map['current_status_id'] = each_request.current_status_id
+                usercar = each_request.user_car_id
+                usercarbrand = usercar.carbrand.car_brand
+                request_map['usercarbrand'] = usercarbrand
+                request_map['regno'] = usercar.registration_number
+                usercarmodel = usercar.carmodel.car_model
+                request_map['usercarmodel'] = usercarmodel
+                request_map['servicetype'] = request_alloc_obj.service_type_id.name
+                request_map['drivername'] = request_alloc_obj.driver_id.first_name
+                try:
+                    feedback = Request_Feedback.objects.get(request_id = each_request)
+                    request_map['washrating'] = feedback.washrating
+                    request_map['driverrating'] = feedback.driverrating
+                    request_map['overallrating'] = feedback.overallrating
+                except Exception as inst:
+                    request_map['washrating'] = 0
+                    request_map['driverrating'] = 0
+                    request_map['overallrating'] = 0
+                #request_map['driver_name'] = each_request.driver_id.first_name
+                request_list.append(request_map)
+            return Response({'response':[{'error':False,'reason':'Requests Available','success':True,'id':pk,'responsedata':request_list}]} , status = status.HTTP_201_CREATED)
+        except Exception as inst:
+            print('error in Request Status')
+            print(type(inst))
+            print(inst.args)
+            print(inst)
+            return Response({'response':[{'error':True,'reason':'Unknown','success':False,'id':pk }]} , status = status.HTTP_201_CREATED)
