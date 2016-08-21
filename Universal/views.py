@@ -588,7 +588,7 @@ def requeststatus_info(request , pk , format = None):
             print('error in Request Status')
             return Response({'response':[{'error':True,'reason':'Unknown','success':False,'id':pk }]} , status = status.HTTP_201_CREATED)
 
-        return Response({'response':[{'error':False,'reason':'No Joints','success':True,'id':pk,'request_status':request_obj.current_status.id,'date':request_obj.date,'timeslot':request_obj.time_slot_id.id,'car_reg':car.registration_number,'carmodel':car.carmodel.car_model,'carbrand':car.carbrand.car_brand,'drivermobile':request_alloc_obj.driver_id.joint_mobile,'driverfirstname':request_alloc_obj.driver_id.first_name ,'driverlastname':request_alloc_obj.driver_id.last_name}]} , status = status.HTTP_201_CREATED)
+        return Response({'response':[{'error':False,'reason':'No Joints','success':True,'id':pk,'request_status':request_obj.current_status.id,'date':request_obj.date,'timeslot':request_obj.time_slot_id.id,'car_reg':car.registration_number,'carmodel':car.carmodel.car_model,'carbrand':car.carbrand.car_brand,'drivermobile':request_alloc_obj.driver_id.joint_mobile,'driverfirstname':request_alloc_obj.driver_id.first_name ,'driverlastname':request_alloc_obj.driver_id.last_name,'latt':request_alloc_obj.car_joint_id.latt,'longg':request_alloc_obj.car_joint_id.longg}]} , status = status.HTTP_201_CREATED)
 
 
 
