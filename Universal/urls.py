@@ -12,5 +12,6 @@ urlpatterns = [
     url(r'^driver_jobs/(?P<pk>[0-9]+)/$',views.driverjobdetails),
     url(r'^feedback/(?P<pk>[0-9]+)/$',views.submitfeedback),
     url(r'^requestcancel/(?P<pk>[0-9]+)/$',views.cancelrequest),
-    url(r'^userrequests/(?P<pk>[0-9]+)/$',views.getuserrequests)
+    url(r'^userrequests/(?P<pk>[0-9]+)/$',views.getuserrequests),
+    url(r'^changedriver/(?P<pk>[0-9]+)/$',views.changedriver)
 ]

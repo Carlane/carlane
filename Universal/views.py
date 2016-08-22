@@ -444,6 +444,60 @@ def findSlotsForDate(request , pk , format = None):
     print('return data length is ',len(response_time_slots))
     return Response({'response':[{'error':False,'reason':'Slots Available','success':True,'id':pk  ,'responsedata':response_time_slots}]} , status = status.HTTP_201_CREATED)
 
+@api_view(['POST'])
+def changedriver(request , pk , format = None):
+    print('=====================Change Driver Request Received=============================')
+    requestdata = request.data
+    new_driver_id = requestdata['newdriverid']
+    request_id = requestdata['serviceid']
+    print('New Driver Id' , new_driver_id)
+    print('Reques Id to change',request_id)
+    request_to_change = Request.objects.get(id = request_id)
+    new_driver = User.objects.get(userid= new_driver_id)
+    print('New driver Name is ', new_driver.first_name)
+    requestalloc_to_change = Request_Allocation.objects.get(request_id = request_id)
+    print('Getting old driver Updating His allocation')
+    old_driver = requestalloc_to_change.driver_id
+    old_driver_allocation = Driver_Allocation_Status.objects.get(driver_user_id = old_driver , date = request_to_change.date , time_slot_id = request_to_change.time_slot_id)
+    if(old_driver_allocation.current_count > 0):
+        old_driver_allocation.current_count -=1
+        old_driver_allocation.save()
+    print('Updated Old Driver ',old_driver.first_name)
+    print('Finding allocation of new driver')
+    print('Getting old driver Updating His allocation on given date time slot',new_driver.first_name)
+    try:
+        rider = Driver_Allocation_Status.objects.filter(driver_user_id = new_driver, date = request_to_change.date , time_slot_id = request_to_change.time_slot_id)
+
+    except Exception as inst:
+        print('Error in finding new driver allocation status ')
+        print(type(inst))
+        print(inst.args)
+        print(inst)
+        rider = None
+    if len(rider) > 0 and rider[0].current_count > 5:
+        print('this rider is already booked so search for next one')
+        return Response({'response':[{'error':True,'reason':'Driver Booked','success':False,'id':new_driver.userid }]} , status = status.HTTP_201_CREATED)
+        #return response
+    else:
+        if rider is None or len(rider) <= 0:
+            # create new driver allocation
+            print("creating new driver allocation")
+            driver_allocation_obj = Driver_Allocation_Status(date = request_to_change.date  ,current_count = 1 ,driver_user_id =  new_driver,time_slot_id = request_to_change.time_slot_id)
+            driver_allocation_obj.save()
+            print("Success driver allocation success id is " , driver_allocation_obj.id)
+        else:
+            print("Updating driver allocation status")
+            rider[0].current_count = rider[0].current_count + 1
+            rider[0].save()
+            print("Succes driver alocation update - new count is ",rider[0].current_count)
+        requestalloc_to_change.driver_id = new_driver
+        requestalloc_to_change.save()
+        print('Update Request Allocation Also , New Driver Allocated')
+        return Response({'response':[{'error':False,'reason':'New Driver Changed Successfully','success':True,'id':new_driver.userid }]} , status = status.HTTP_201_CREATED)
+
+
+
+
 
 @api_view(['POST'])
 def initreq(request , pk , format = None):
@@ -604,6 +658,30 @@ def driverjobdetails(request , pk , format = None):
             driver_req_allocation_objs = Request_Allocation.objects.filter(driver_id = driver , request_id__current_status__id__lte=7)
             for req_alloc in driver_req_allocation_objs:
                 dictionary_req= {}
+                #gte other drivers which can handle this request_id
+                print('getting car joints')
+                try:
+                    carjoint = req_alloc.car_joint_id
+                    print('carjoint name',carjoint.name)
+                    driver_joints_map = Joint_Driver_Mapping.objects.filter(car_joint_id = carjoint)
+                    print('joint driver mapping', len(driver_joints_map))
+                    alternate_driver = []
+                    for eachdriver_jointmapping in driver_joints_map:
+                        driver_id_name_map = {}
+                        if(int(pk) != int(eachdriver_jointmapping.driver_user_id.userid)):
+                            print('alternate driver id' , eachdriver_jointmapping.driver_user_id.userid , pk)
+                            driver_id_name_map['alternate_id'] = eachdriver_jointmapping.driver_user_id.userid
+                            print('alternate driver name' , eachdriver_jointmapping.driver_user_id.first_name)
+                            driver_id_name_map['alternate_name'] = eachdriver_jointmapping.driver_user_id.first_name
+                            alternate_driver.append(driver_id_name_map)
+                    print('size of alternate drivers', len(alternate_driver))
+                    dictionary_req['alternate_drivers'] = alternate_driver
+                except Exception as inst:
+                    print('Error in joint driver mapping')
+                    print(type(inst))
+                    print(inst.args)
+                    print(inst)
+
                 req_obj = req_alloc.request_id
                 print('Get Req Id')
                 dictionary_req['requestid'] = req_obj.id
@@ -788,7 +866,7 @@ def getuserrequests(request , pk , format = None):
         requestdata = request.data
         try:
             who_requested  = User.objects.get(userid = pk)
-            print('feedback submitted by ',who_requested.first_name)
+            print('submitted by ',who_requested.first_name)
             print('Getting Request Object')
             all_requests = Request.objects.filter(user_id = pk)
             request_list = []
