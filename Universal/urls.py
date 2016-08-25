@@ -13,5 +13,6 @@ urlpatterns = [
     url(r'^feedback/(?P<pk>[0-9]+)/$',views.submitfeedback),
     url(r'^requestcancel/(?P<pk>[0-9]+)/$',views.cancelrequest),
     url(r'^userrequests/(?P<pk>[0-9]+)/$',views.getuserrequests),
-    url(r'^changedriver/(?P<pk>[0-9]+)/$',views.changedriver)
+    url(r'^changedriver/(?P<pk>[0-9]+)/$',views.changedriver),
+    url(r'^locationservices/(?P<pk>[0-9]+)/$',views.locationbasedServices)
 ]

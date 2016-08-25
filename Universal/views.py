@@ -16,8 +16,10 @@ from django.core.mail import EmailMultiAlternatives
 import requests#to send python post request
 import json
 from decimal import Decimal
+import codecs
 
-from Universal.models import CarBrands , User , UserCar , User_Type , CarModels , Car_Joint, User_Address , UserStatus , Request,Request_Allocation , Request_Status
+
+from Universal.models import CarBrands , User , UserCar , User_Type , CarModels , Car_Joint, User_Address , UserStatus , Request,Request_Allocation , Request_Status , Geography
 from Universal.models import Service_Type , Joint_Service_Mapping , Joint_Driver_Mapping , Driver_Allocation_Status , TimeSlot , Joint_Allocation_Status , Request_Feedback
 
 def send_welcome_email2(request , receiver , mailsubject , name):
@@ -149,6 +151,9 @@ def sendnotification(token , title , message):
     headers = {"Content-Type":"application/json","Authorization":"key=AIzaSyDyFp7dzNe5DD7Q3MvcCAk0a-xLxX4Xut0"}
     r = requests.post(fireurl , data =  json.dumps(arraytosend) , headers = headers)
     print('notification sent' , r.content)
+
+
+
 
 
 
@@ -903,3 +908,97 @@ def getuserrequests(request , pk , format = None):
             print(inst.args)
             print(inst)
             return Response({'response':[{'error':True,'reason':'Unknown','success':False,'id':pk }]} , status = status.HTTP_201_CREATED)
+
+@api_view(['GET','POST'])
+def locationbasedServices(request , pk , format = None):
+    print("================================ GET LOCATIONBASED SERVICES ====================================")
+    if request.method == 'POST':
+        requestdata = request.data
+        try:
+            who_requested  = User.objects.get(userid = pk)
+            print('submitted by ',who_requested.first_name)
+            print("latt " , requestdata['latt'])
+            print("longg " , requestdata['longg'])
+            print('Getting Car Joints')
+            geo= Geography.objects.get(name__iexact="Hyderabad")
+            if geo is None:
+                print('Error in Geo')
+            print('Geo is Okay')
+            carjoints = Car_Joint.objects.filter(geo_id = geo)
+            destinations=""
+            for each_joint in carjoints:
+                print('joint name for validation with second loop below' , each_joint.name)
+                destinations=destinations+str(each_joint.latt) + ","+str(each_joint.longg)+"|"
+            destinations = destinations[:-1]
+
+            final_url="https://maps.googleapis.com/maps/api/distancematrix/json?units=metrics&origins="+ requestdata['latt'] + "," + requestdata['longg'] + "&destinations="+destinations+ "&key=AIzaSyDyFp7dzNe5DD7Q3MvcCAk0a-xLxX4Xut0"
+            print(final_url)
+            response = findDistance(final_url)
+            distance_list = []
+            print('===== Distances got from Google APIs response')
+            for each_item in response:
+                print('print distance value')
+                print(each_item['distance']['text'])
+                distance_list.append(each_item['distance']['value'])
+
+            print("===========   Iterate CAR JOINTS and find services of their and add in a dictionary - key is service id ====")
+            #again iterate the car joints so that we can prepare a dictionary to send data
+            response_list = []
+            data_for_user = {}# one dictionary for all the services
+            count = 0
+            for each_joint in carjoints:
+                print('joint name for validation with second loop above' , each_joint.name)
+                #find each service for this joint
+                services = Joint_Service_Mapping.objects.filter(car_joint_id = each_joint)
+                for each_service in services:
+                    print(' key : service id' , str(each_service.service_type_id.id))
+                    if str(each_service.service_type_id.id) in data_for_user:
+                        print('key present in dict')
+                        key = str(each_service.service_type_id.id)
+                        print('key value' , data_for_user[key]['min_dist'])
+                        old_dist = int(data_for_user[key]['min_dist'])
+                        print('old_dist' , old_dist)
+                        print('new dist' , distance_list[count])
+                        new_dist = distance_list[count]
+                        if old_dist > new_dist:
+                            print('new distance is less so save this')
+                            data_for_user[key]['min_dist'] = str(new_dist)
+                        data_for_user[key]['joint_count'] = data_for_user[key]['joint_count'] +1
+
+                    else:
+                        print('key not in dict')
+                        inside_dict = {}
+                        inside_dict['joint_count'] = 1
+                        print('  google distance for this service' , distance_list[count])
+                        inside_dict['min_dist'] = distance_list[count]
+                        print('  inside dict prepared' , inside_dict['min_dist'] )
+                        print('  key : service id' , str(each_service.service_type_id.id))
+                        key = str(each_service.service_type_id.id)
+                        data_for_user[key] = inside_dict
+                count+=1
+
+        except Exception as inst:
+            print(type(inst))
+            print(inst.args)
+            print(inst)
+        response_list.append(data_for_user)
+        return Response({'response':[{'error':False,'reason':'Requests Available','success':True,'id':pk , 'responsedata':response_list}]} , status = status.HTTP_201_CREATED)
+
+
+def findDistance(url):
+    print('Firing Request')
+    r = requests.get(url)
+    print('request sent')
+    print('notification sent' , r.content)
+    try :
+        reader = codecs.getreader("utf-8")
+        a= json.loads(r.content.decode('utf-8'))
+        print('json reading success')
+        print('origin_addresses ' ,a['origin_addresses'][0])
+        print('rows elements', a['rows'][0]['elements'][0]['distance']['value'])
+        return a['rows'][0]['elements']
+    except Exception as inst:
+        print(type(inst))
+        print(inst.args)
+        print(inst)
+    return []
