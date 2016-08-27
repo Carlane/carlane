@@ -55,6 +55,9 @@ class User_Address(models.Model):
 	latt = models.DecimalField(max_digits = 100 , decimal_places = 50 , blank = True , null = True)
 	longg = models.DecimalField(max_digits = 100 , decimal_places = 50 , blank = True , null = True)
 
+class Car_Type(models.Model):
+	id = models.AutoField(primary_key = True)
+	cartype = models.CharField(max_length = 30 , blank = False , null = True)
 
 class CarBrands(models.Model):
     carbrandid = models.AutoField(primary_key = True)
@@ -69,6 +72,7 @@ class CarModels(models.Model):
 	modelid = models.AutoField(primary_key = True)
 	carmodel_brand = models.ForeignKey(CarBrands)
 	car_model = models.CharField(max_length = 50 , blank = True, null = True)
+	typeofcar = models.ForeignKey(Car_Type)
 
 	def __str__(self):
 		return self.car_model
@@ -130,10 +134,53 @@ class Service_Type(models.Model):
 	id =  models.AutoField(primary_key = True)
 	geo_id = models.ForeignKey(Geography)
 	name = models.CharField(max_length = 50)
-	cost = models.DecimalField(max_digits = 10 , decimal_places = 2 , blank = False , null = True)
 	is_active = models.BooleanField(default = True)
 	def __str__(self):
-		return "Name "+self.name+" Geo "+self.geo_id.name+" Cost "+str(self.cost) + "\n"
+		return "Name "+self.name+" Geo "+self.geo_id.name+" Cost "+ "\n"
+
+class ServiceVersion(models.Model):
+	id = models.AutoField(primary_key = True)
+	geo_id = models.ForeignKey(Geography)
+	verion = models.DecimalField(max_digits = 10 , decimal_places = 5)
+
+
+class Service_Attributes(models.Model):
+	id = models.AutoField(primary_key = True)
+	typeofservice = models.ForeignKey(Service_Type)
+	description = models.CharField(max_length = 1000 , null = True , blank = True)
+	motto = models.CharField(max_length = 200 , null = True, blank = True)
+	attribute_1 = models.CharField(max_length = 200 , null =True , blank = True)
+	attribute_2 = models.CharField(max_length = 200 , null =True , blank = True)
+	attribute_3 = models.CharField(max_length = 200 , null =True , blank = True)
+	attribute_4 = models.CharField(max_length = 200 , null =True , blank = True)
+	attribute_5 = models.CharField(max_length = 200 , null =True , blank = True)
+	attribute_6 = models.CharField(max_length = 200 , null =True , blank = True)
+	attribute_7 = models.CharField(max_length = 200 , null =True , blank = True)
+	attribute_8 = models.CharField(max_length = 200 , null =True , blank = True)
+	attribute_9 = models.CharField(max_length = 200 , null =True , blank = True)
+	attribute_10 = models.CharField(max_length = 200 , null =True , blank = True)
+	attribute_11 = models.CharField(max_length = 200 , null =True , blank = True)
+	attribute_12 = models.CharField(max_length = 200 , null =True , blank = True)
+	attribute_13 = models.CharField(max_length = 200 , null =True , blank = True)
+	attribute_14 = models.CharField(max_length = 200 , null =True , blank = True)
+	attribute_15 = models.CharField(max_length = 200 , null =True , blank = True)
+	attribute_16 = models.CharField(max_length = 200 , null =True , blank = True)
+	attribute_17 = models.CharField(max_length = 200 , null =True , blank = True)
+	attribute_18 = models.CharField(max_length = 200 , null =True , blank = True)
+	attribute_19 = models.CharField(max_length = 200 , null =True , blank = True)
+	attribute_20 = models.CharField(max_length = 200 , null =True , blank = True)
+
+
+
+
+
+class Cost(models.Model):
+	id = models.AutoField(primary_key = True)
+	typeofservice = models.ForeignKey(Service_Type)
+	typeofcar = models.ForeignKey(Car_Type)
+	costtouser = models.DecimalField(max_digits = 10 , decimal_places = 2)
+	def __str__(self):
+		return str(self.costtouser)
 
 class Car_Joint(models.Model):
 	id =  models.AutoField(primary_key = True)
@@ -157,6 +204,8 @@ class Car_Joint_Contact(models.Model):
 	contact_type = models.ForeignKey(Contact_Type)
 	contact_no = models.CharField(max_length = 100)
 	is_active = models.BooleanField(default = True)
+
+
 
 class Joint_Service_Mapping(models.Model):
 	id =  models.AutoField(primary_key = True)

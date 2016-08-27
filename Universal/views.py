@@ -21,6 +21,7 @@ import codecs
 
 from Universal.models import CarBrands , User , UserCar , User_Type , CarModels , Car_Joint, User_Address , UserStatus , Request,Request_Allocation , Request_Status , Geography
 from Universal.models import Service_Type , Joint_Service_Mapping , Joint_Driver_Mapping , Driver_Allocation_Status , TimeSlot , Joint_Allocation_Status , Request_Feedback
+from Universal.models import ServiceVersion , Service_Attributes , Cost , Car_Type
 
 def send_welcome_email2(request , receiver , mailsubject , name):
     # Load the image you want to send as bytes
@@ -910,6 +911,97 @@ def getuserrequests(request , pk , format = None):
             return Response({'response':[{'error':True,'reason':'Unknown','success':False,'id':pk }]} , status = status.HTTP_201_CREATED)
 
 @api_view(['GET','POST'])
+def serviceversion(request , pk , format = None):
+    print("============= GET SERVICES VERSION =======================")
+    if(request.method == "POST"):
+        try:
+            requestdata = request.data
+            who_requested = User.objects.get(userid = pk)
+            print('submitted by ',who_requested.first_name)
+            print('user service version' , requestdata['service_version'])
+            geo= Geography.objects.get(name__iexact="Hyderabad")
+            system_version = ServiceVersion.objects.get(geo_id = geo)
+            print('system version' , system_version.verion)
+            string_version = str(requestdata['service_version'])
+            print('string version' , string_version)
+            userversion = float(string_version)
+            if(userversion < float(system_version.verion)):
+                print("User Version is less than System Version")
+                #get all the services in this grography and their attibutes
+                print('geo id is ', geo.name)
+                all_services = Service_Type.objects.filter(geo_id = geo)
+                service_attribute_map = {}
+                for this_service in all_services:
+                    usercar = UserCar.objects.get(carownerid = who_requested)
+                    carmodel = CarModels.objects.get(car_model = usercar.carmodel)
+                    costtouser = Cost.objects.get(typeofservice = this_service , typeofcar = usercar.carmodel.typeofcar)
+                    print('this_service name' , this_service.name)
+                    service_attribute = Service_Attributes.objects.get(typeofservice = this_service)
+                    attributes={}
+                    print('cost',costtouser.costtouser)
+                    attributes['cost'] = costtouser.costtouser
+                    print('description ' ,service_attribute.description)
+                    attributes['name'] =  this_service.name
+                    attributes['description'] = service_attribute.description
+                    print(service_attribute.motto)
+                    attributes['motto'] =      service_attribute.motto
+                    print(service_attribute.attribute_1)
+                    attributes['attribute_1'] = service_attribute.attribute_1
+                    print(service_attribute.attribute_2)
+                    attributes['attribute_2'] = service_attribute.attribute_2
+                    print(service_attribute.attribute_3)
+                    attributes['attribute_3'] = service_attribute.attribute_3
+                    print(service_attribute.attribute_4)
+                    attributes['attribute_4'] = service_attribute.attribute_4
+                    print(service_attribute.attribute_5)
+                    attributes['attribute_5'] = service_attribute.attribute_5
+                    print(service_attribute.attribute_6)
+                    attributes['attribute_6'] = service_attribute.attribute_6
+                    print(service_attribute.attribute_7)
+                    attributes['attribute_7'] = service_attribute.attribute_7
+                    print(service_attribute.attribute_8)
+                    attributes['attribute_8'] = service_attribute.attribute_8
+                    print(service_attribute.attribute_9)
+                    attributes['attribute_9'] = service_attribute.attribute_9
+                    print(service_attribute.attribute_10)
+                    attributes['attribute_10'] = service_attribute.attribute_10
+                    print(service_attribute.attribute_11)
+                    attributes['attribute_11'] = service_attribute.attribute_11
+                    print(service_attribute.attribute_12)
+                    attributes['attribute_12'] = service_attribute.attribute_12
+                    print(service_attribute.attribute_13)
+                    attributes['attribute_13'] = service_attribute.attribute_13
+                    print(service_attribute.attribute_14)
+                    attributes['attribute_14'] = service_attribute.attribute_14
+                    print(service_attribute.attribute_15)
+                    attributes['attribute_15'] = service_attribute.attribute_15
+                    print(service_attribute.attribute_16)
+                    attributes['attribute_16'] = service_attribute.attribute_16
+                    print(service_attribute.attribute_17)
+                    attributes['attribute_17'] = service_attribute.attribute_17
+                    print(service_attribute.attribute_18)
+                    attributes['attribute_18'] = service_attribute.attribute_18
+                    print(service_attribute.attribute_19)
+                    attributes['attribute_19'] = service_attribute.attribute_19
+                    print(service_attribute.attribute_20)
+                    attributes['attribute_20'] = service_attribute.attribute_20
+                    print('attributes _prepared')
+                    #save names
+                    service_attribute_map[this_service.name+"~"+str(this_service.id)] = attributes
+            else:
+                print('User Version is Up To Date')
+            response_list=[]
+            response_list.append(service_attribute_map)
+        except Exception as inst:
+            print(type(inst))
+            print(inst.args)
+            print(inst)
+        return Response({'response':[{'error':False,'reason':'Requests Available','success':True,'id':pk , 'responsedata':response_list}]} , status = status.HTTP_201_CREATED)
+
+
+
+
+@api_view(['GET','POST'])
 def locationbasedServices(request , pk , format = None):
     print("================================ GET LOCATIONBASED SERVICES ====================================")
     if request.method == 'POST':
@@ -926,6 +1018,7 @@ def locationbasedServices(request , pk , format = None):
             print('Geo is Okay')
             carjoints = Car_Joint.objects.filter(geo_id = geo)
             destinations=""
+            #get every car joints latt longg , to prepare a destination string
             for each_joint in carjoints:
                 print('joint name for validation with second loop below' , each_joint.name)
                 destinations=destinations+str(each_joint.latt) + ","+str(each_joint.longg)+"|"
@@ -933,16 +1026,20 @@ def locationbasedServices(request , pk , format = None):
 
             final_url="https://maps.googleapis.com/maps/api/distancematrix/json?units=metrics&origins="+ requestdata['latt'] + "," + requestdata['longg'] + "&destinations="+destinations+ "&key=AIzaSyDyFp7dzNe5DD7Q3MvcCAk0a-xLxX4Xut0"
             print(final_url)
+            #send the url to google to calculate road distance
             response = findDistance(final_url)
             distance_list = []
-            print('===== Distances got from Google APIs response')
+            print('===== Distances matrix received from Google APIs response')
             for each_item in response:
                 print('print distance value')
                 print(each_item['distance']['text'])
                 distance_list.append(each_item['distance']['value'])
 
-            print("===========   Iterate CAR JOINTS and find services of their and add in a dictionary - key is service id ====")
+            print("===========   Iterate CAR JOINTS and find their ervices add in a dictionary - key is service id ====")
             #again iterate the car joints so that we can prepare a dictionary to send data
+            # idea is to get a service of joint , and add it to dictionary with its id as key and its ditance from user location as value
+            # if a service is already added in dictionary , we check the distance value and compare with new , if less we update the nearest distance for this service
+            #
             response_list = []
             data_for_user = {}# one dictionary for all the services
             count = 0
@@ -953,16 +1050,18 @@ def locationbasedServices(request , pk , format = None):
                 for each_service in services:
                     print(' key : service id' , str(each_service.service_type_id.id))
                     if str(each_service.service_type_id.id) in data_for_user:
-                        print('key present in dict')
+                        print('key:service already present in dict')
                         key = str(each_service.service_type_id.id)
                         print('key value' , data_for_user[key]['min_dist'])
                         old_dist = int(data_for_user[key]['min_dist'])
                         print('old_dist' , old_dist)
                         print('new dist' , distance_list[count])
                         new_dist = distance_list[count]
+                        print('comparing new and old distance')
                         if old_dist > new_dist:
                             print('new distance is less so save this')
                             data_for_user[key]['min_dist'] = str(new_dist)
+                        print('new distance is more the old so just increase the joint count for this service')
                         data_for_user[key]['joint_count'] = data_for_user[key]['joint_count'] +1
 
                     else:

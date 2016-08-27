@@ -14,5 +14,7 @@ urlpatterns = [
     url(r'^requestcancel/(?P<pk>[0-9]+)/$',views.cancelrequest),
     url(r'^userrequests/(?P<pk>[0-9]+)/$',views.getuserrequests),
     url(r'^changedriver/(?P<pk>[0-9]+)/$',views.changedriver),
-    url(r'^locationservices/(?P<pk>[0-9]+)/$',views.locationbasedServices)
+    url(r'^locationservices/(?P<pk>[0-9]+)/$',views.locationbasedServices),
+    url(r'^services_version/(?P<pk>[0-9]+)/$',views.serviceversion)
+
 ]
