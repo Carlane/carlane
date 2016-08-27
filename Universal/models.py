@@ -72,7 +72,7 @@ class CarModels(models.Model):
 	modelid = models.AutoField(primary_key = True)
 	carmodel_brand = models.ForeignKey(CarBrands)
 	car_model = models.CharField(max_length = 50 , blank = True, null = True)
-	typeofcar = models.ForeignKey(Car_Type)
+	typeofcar = models.ForeignKey(Car_Type , null = True)
 
 	def __str__(self):
 		return self.car_model
