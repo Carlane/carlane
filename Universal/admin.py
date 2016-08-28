@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import User_Type, UserStatus, User, User_Address, CarBrands, CarModels, UserCar, WashType, NewWashRequest, Contact_Type, Geography, TimeSlot, Service_Type, Car_Joint, Car_Joint_Contact, Joint_Service_Mapping, Joint_Driver_Mapping, Request_Status, Request, Request_Allocation, Joint_Allocation_Status, Driver_Allocation_Status, Request_Feedback
+from .models import ServiceVersion , Service_Attributes , Cost , Car_Type , User_Type, UserStatus, User, User_Address, CarBrands, CarModels, UserCar, WashType, NewWashRequest, Contact_Type, Geography, TimeSlot, Service_Type, Car_Joint, Car_Joint_Contact, Joint_Service_Mapping, Joint_Driver_Mapping, Request_Status, Request, Request_Allocation, Joint_Allocation_Status, Driver_Allocation_Status, Request_Feedback
 # Register your models here.
 
 admin.site.register(User_Type)
@@ -25,3 +25,7 @@ admin.site.register(Request_Allocation)
 admin.site.register(Joint_Allocation_Status)
 admin.site.register(Driver_Allocation_Status)
 admin.site.register(Request_Feedback)
+admin.site.register(ServiceVersion)
+admin.site.register(Service_Attributes)
+admin.site.register(Cost)
+admin.site.register(Car_Type)
