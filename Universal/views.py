@@ -528,8 +528,8 @@ def initreq(request , pk , format = None):
     time_slot = TimeSlot.objects.get(id = request_slot_id)
     print('finding ongoing requests')
     existing_requests = Request.objects.filter(user_id = who_requested , current_status__id__lte=9)
-    if existing_requests is not None or len(existing_requests) <= 0:
-        print('on going request placed')
+    if existing_requests is not None && len(existing_requests) > 0:
+        print('on going request placed',len(existing_requests))
         return Response({'response':[{'error':True,'reason':'You already have an OnGoing Request','success':False,'id':pk }]} , status = status.HTTP_201_CREATED)
 
     #Again First find the drivers for the given time slot
