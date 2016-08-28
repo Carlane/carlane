@@ -238,6 +238,7 @@ class Request(models.Model):
 	latt = models.DecimalField(max_digits = 30 , decimal_places = 20)
 	longg = models.DecimalField(max_digits = 30 , decimal_places = 20)
 	current_status = models.ForeignKey(Request_Status , default = None , null = True)
+	additional_instruction = models.CharField(max_length = 1000 , blank = True , null = True)
 
 class Request_Feedback(models.Model):
 	id =  models.AutoField(primary_key = True)

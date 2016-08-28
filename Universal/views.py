@@ -516,6 +516,7 @@ def initreq(request , pk , format = None):
     request_car =requestdata['carno']
     request_latt= requestdata['latt']
     request_longg = requestdata['longg']
+    user_instruction = requestdata['inst']
     print('Printing data received in Request service , slot , car', request_service_id,    request_slot_id,request_car)
     print('Lattitude' , request_latt)
     print('Lattitude' , request_longg)
@@ -525,6 +526,12 @@ def initreq(request , pk , format = None):
     request_Date = datetime.datetime.now() + timedelta(days=int(days_ahead_of_current_date))
 
     time_slot = TimeSlot.objects.get(id = request_slot_id)
+    print('finding ongoing requests')
+    existing_requests = Request.objects.filter(user_id = who_requested , current_status__id__lte=9)
+    if existing_requests is not None or len(existing_requests) <= 0:
+        print('on going request placed')
+        return Response({'response':[{'error':True,'reason':'You already have an OnGoing Request','success':False,'id':pk }]} , status = status.HTTP_201_CREATED)
+
     #Again First find the drivers for the given time slot
     try :
         print('Finding Joints from Joint Service Mapping')
@@ -562,7 +569,7 @@ def initreq(request , pk , format = None):
                 user_car = UserCar.objects.get(registration_number = request_car)
                 request_current_status = Request_Status.objects.get(current_status ='request_init')
                 print("request current status" ,request_current_status.current_status)
-                newRequest = Request(user_id = user , time_slot_id = time_slot ,user_car_id = user_car , date = request_Date , current_status = request_current_status , latt = request_latt , longg = request_longg)
+                newRequest = Request(user_id = user , time_slot_id = time_slot ,user_car_id = user_car , date = request_Date , current_status = request_current_status , latt = request_latt , longg = request_longg , additional_instruction = user_instruction)
                 newRequest.save()
                 print('Request Placed -- New request id ' ,newRequest.id)
                 joint = Car_Joint.objects.get(id = each_joint.car_joint_id.id)
@@ -800,14 +807,14 @@ def cancelrequest(request , pk , format = None):
                 user_requester = request_obj.user_id
                 user_requester.user_status = UserStatus.objects.get(id = 2)
                 user_requester.save()
+                request_alloc = Request_Allocation.objects.get(request_id = request_obj.id)
                 #todo update driver allocation status and joint alloecation status
-                driver_allocation = Driver_Allocation_Status.objects.get(date = request_obj.date , time_slot_id = request_obj.time_slot_id)
+                driver_allocation = Driver_Allocation_Status.objects.get(date = request_obj.date , time_slot_id = request_obj.time_slot_id , driver_user_id = request_alloc.driver_id)
                 print("updating driver allocation")
                 driver_allocation.current_count -=1
                 driver_allocation.save()
                 print("driver allocation update SUCCESS")
                 print("Updating Joint Allocation Status")
-                request_alloc = Request_Allocation.objects.get(request_id = request_obj.id)
                 joint_allocation = Joint_Allocation_Status.objects.get(date = request_obj.date, car_joint_id = request_alloc.car_joint_id, service_type_id = request_alloc.service_type_id)
                 joint_allocation.current_count -=1
                 joint_allocation.save()
@@ -925,12 +932,14 @@ def serviceversion(request , pk , format = None):
             string_version = str(requestdata['service_version'])
             print('string version' , string_version)
             userversion = float(string_version)
+            response_list=[]
+            service_attribute_map = {}
             if(userversion < float(system_version.verion)):
                 print("User Version is less than System Version")
                 #get all the services in this grography and their attibutes
                 print('geo id is ', geo.name)
                 all_services = Service_Type.objects.filter(geo_id = geo)
-                service_attribute_map = {}
+                print('all service count is',len(all_services))
                 for this_service in all_services:
                     usercar = UserCar.objects.get(carownerid = who_requested)
                     carmodel = CarModels.objects.get(car_model = usercar.carmodel)
@@ -988,15 +997,16 @@ def serviceversion(request , pk , format = None):
                     print('attributes _prepared')
                     #save names
                     service_attribute_map[this_service.name+"~"+str(this_service.id)] = attributes
+                    response_list.append(service_attribute_map)
+                return Response({'response':[{'error':False,'reason':'Requests Available','success':True,'id':pk ,'isversionupdated':True,'system_version':system_version.verion, 'responsedata':response_list}]} , status = status.HTTP_201_CREATED)
             else:
                 print('User Version is Up To Date')
-            response_list=[]
-            response_list.append(service_attribute_map)
+
         except Exception as inst:
             print(type(inst))
             print(inst.args)
             print(inst)
-        return Response({'response':[{'error':False,'reason':'Requests Available','success':True,'id':pk , 'responsedata':response_list}]} , status = status.HTTP_201_CREATED)
+        return Response({'response':[{'error':False,'reason':'Requests Available','success':True,'id':pk ,'isversionupdated':False,'system_version':system_version.verion, 'responsedata':response_list}]} , status = status.HTTP_201_CREATED)
 
 
 
