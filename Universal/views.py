@@ -77,7 +77,7 @@ def send_sms(sms_content , to , message):
 
 def send_welcome_email4(request , receiver , mailsubject , name):
     d = Context({ 'user': name })
-    html_content = render_to_string('Universal/email/NO.request.TIFICATIONBLUE.html', d)
+    html_content = render_to_string('Universal/email/NOTIFICATIONBLUE.html', d)
     #text_content = render_to_string('foo.txt', context)
     msg = EmailMultiAlternatives(mailsubject, 'text_content',
                                  'mycarlane@mycarlane.com', [receiver])
