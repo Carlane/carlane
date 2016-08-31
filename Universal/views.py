@@ -17,11 +17,15 @@ import requests#to send python post request
 import json
 from decimal import Decimal
 import codecs
-
+import urllib # Python URL functions
+#import urllib2 # Python URL functions
 
 from Universal.models import CarBrands , User , UserCar , User_Type , CarModels , Car_Joint, User_Address , UserStatus , Request,Request_Allocation , Request_Status , Geography
 from Universal.models import Service_Type , Joint_Service_Mapping , Joint_Driver_Mapping , Driver_Allocation_Status , TimeSlot , Joint_Allocation_Status , Request_Feedback
 from Universal.models import ServiceVersion , Service_Attributes , Cost , Car_Type
+
+
+
 
 def send_welcome_email2(request , receiver , mailsubject , name):
     # Load the image you want to send as bytes
@@ -48,10 +52,32 @@ def send_welcome_email2(request , receiver , mailsubject , name):
     print('html part okay 3')
     msg.send()
 
+def send_sms(sms_content , to , message):
+    #123820AXotLZ8cCky57c6e145
+    print('sending sms to ' , to , message)
+    authkey = "123820AXotLZ8cCky57c6e145" # Your authentication key.
+    mobiles = to # Multiple mobiles numbers separated by comma
+    message = message # Your message to send
+    sender = "MyCarL" # Sender ID,While using route4 sender id should be 6 characters long.
+    route = "route4" # Define route
+    print('name')
+    values = {'authkey' : authkey,'mobiles' : mobiles,'message' : message,'sender' : sender,'route' : route}
+    url = 'https://control.msg91.com/api/sendhttp.php' # API URL
+    try:
+        notification = {'authkey' : authkey,'mobiles' : mobiles,'message' : message,'sender' : sender,'route' : route}
+        headers = {"Content-Type":"application/json","Authorization":"key=AIzaSyDyFp7dzNe5DD7Q3MvcCAk0a-xLxX4Xut0"}
+        r = requests.post(url , data =  notification)
+        print('notification sent' , notification)
+    except Exception as inst:
+        print('error in Sending SMS to' , to)
+        print(type(inst))
+        print(inst.args)
+        print(inst)
+
 
 def send_welcome_email4(request , receiver , mailsubject , name):
     d = Context({ 'user': name })
-    html_content = render_to_string('Universal/email/NOTIFICATIONBLUE.html', d)
+    html_content = render_to_string('Universal/email/NO.request.TIFICATIONBLUE.html', d)
     #text_content = render_to_string('foo.txt', context)
     msg = EmailMultiAlternatives(mailsubject, 'text_content',
                                  'mycarlane@mycarlane.com', [receiver])
@@ -621,6 +647,18 @@ def initreq(request , pk , format = None):
                 print('sending request email')
                 joint_request_email(request,user.email,'Request Placed',user.first_name)
                 print('email sent')
+                sms_template = getorderstatustemplate()
+                try:
+                    shortdate = newRequest.date.date()
+                    msg = sms_template.format(newRequestAllocation.service_type_id.name ,shortdate, time_slot.display_name,"MCL"+str(newRequest.id))
+                    print('sending sms on placing request')
+                    send_sms('','+91'+who_requested.joint_mobile,msg)
+                except Exception as inst:
+                    print('Error in Sending SMS while receiving Order')
+                    print(type(inst))
+                    print(inst.args)
+                    print(inst)
+
 
 
 
@@ -628,6 +666,8 @@ def initreq(request , pk , format = None):
                 'joint':each_joint.car_joint_id.name,'driverphone':driverMapObject.driver_user_id.joint_mobile,'service_id':request_service_id,'time_slot_id':time_slot.id,'request_status':newRequest.current_status.id,'request_date':newRequest.date}]} , status = status.HTTP_201_CREATED)
     return Response({'response':[{'error':True,'reason':'No Joints','success':False,'id':pk }]} , status = status.HTTP_201_CREATED)
 
+def getorderstatustemplate():
+    return 'Gracias From MyCarLane.\nYour Order Details.\nService Type: {0}\nPick Up Date: {1}.\n Pick Up Slot: {2} PM\nOrder Id: {3}\n.Log In To MyCarLane App to know details of pick up Driver'
 
 @api_view(['GET','POST'])
 def requeststatus_info(request , pk , format = None):
