@@ -957,6 +957,32 @@ def getuserrequests(request , pk , format = None):
             print(inst)
             return Response({'response':[{'error':True,'reason':'Unknown','success':False,'id':pk }]} , status = status.HTTP_201_CREATED)
 
+
+@api_view(['GET','POST'])
+def modelsandbrands(request , pk , format = None):
+    print("============= GET CARs Brands and Models =======================")
+    if(request.method == "GET"):
+        try:
+            allbrands = CarBrands.objects.all()
+            response_list = []
+            current_brand_dict = {}
+            for each_brand in allbrands:
+                list_models = []
+                modelobjects = CarModels.objects.filter(carmodel_brand = each_brand)
+                for each_model in modelobjects:
+                    list_models.append(each_model.car_model)
+                current_brand_dict[each_brand.car_brand] = list_models
+            response_list.append(current_brand_dict)
+            return Response({'response':[{'error':False,'reason':'Data Available','success':True,'id':pk, 'responsedata':response_list}]} , status = status.HTTP_201_CREATED)
+
+        except Exception as inst:
+            print(type(inst))
+            print(inst.args)
+            print(inst)
+        return Response({'response':[{'error':True,'reason':'Data Not Available','success':False,'id':pk, 'responsedata':response_list}]} , status = status.HTTP_201_CREATED)    
+
+
+
 @api_view(['GET','POST'])
 def serviceversion(request , pk , format = None):
     print("============= GET SERVICES VERSION =======================")
