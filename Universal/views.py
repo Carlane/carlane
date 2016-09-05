@@ -595,13 +595,19 @@ def initreq(request , pk , format = None):
                 user_car = UserCar.objects.get(registration_number = request_car)
                 request_current_status = Request_Status.objects.get(current_status ='request_init')
                 print("request current status" ,request_current_status.current_status)
-                newRequest = Request(user_id = user , time_slot_id = time_slot ,user_car_id = user_car , date = request_Date , current_status = request_current_status , latt = request_latt , longg = request_longg , additional_instruction = user_instruction)
-                newRequest.save()
-                print('Request Placed -- New request id ' ,newRequest.id)
-                joint = Car_Joint.objects.get(id = each_joint.car_joint_id.id)
-                servicetype = Service_Type.objects.get(id = request_service_id)
-                newRequestAllocation = Request_Allocation(request_id = newRequest, car_joint_id = joint , service_type_id= servicetype , driver_id = driverMapObject.driver_user_id)
-                newRequestAllocation.save()
+                try:
+                    newRequest = Request(user_id = user , time_slot_id = time_slot ,user_car_id = user_car , date = request_Date , current_status = request_current_status , latt = request_latt , longg = request_longg , additional_instruction = user_instruction)
+                    newRequest.save()
+                    print('Request Placed -- New request id ' ,newRequest.id)
+                    joint = Car_Joint.objects.get(id = each_joint.car_joint_id.id)
+                    servicetype = Service_Type.objects.get(id = request_service_id)
+                    newRequestAllocation = Request_Allocation(request_id = newRequest, car_joint_id = joint , service_type_id= servicetype , driver_id = driverMapObject.driver_user_id)
+                    newRequestAllocation.save()
+                except Exception as inst:
+                    print('Error in Preparing Request')
+                    print(type(inst))
+                    print(inst.args)
+                    print(inst)
                 print('NewRequest Allocation id' , newRequestAllocation.id)
                 #increase joint allocation status(currently does not handler dates)
                 current_allocation_count = 0
@@ -979,7 +985,7 @@ def modelsandbrands(request , pk , format = None):
             print(type(inst))
             print(inst.args)
             print(inst)
-        return Response({'response':[{'error':True,'reason':'Data Not Available','success':False,'id':pk, 'responsedata':response_list}]} , status = status.HTTP_201_CREATED)    
+        return Response({'response':[{'error':True,'reason':'Data Not Available','success':False,'id':pk, 'responsedata':response_list}]} , status = status.HTTP_201_CREATED)
 
 
 
