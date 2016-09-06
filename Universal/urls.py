@@ -16,6 +16,7 @@ urlpatterns = [
     url(r'^changedriver/(?P<pk>[0-9]+)/$',views.changedriver),
     url(r'^locationservices/(?P<pk>[0-9]+)/$',views.locationbasedServices),
     url(r'^services_version/(?P<pk>[0-9]+)/$',views.serviceversion),
-    url(r'^getcars/(?P<pk>[0-9]+)/$',views.modelsandbrands)
+    url(r'^getcars/(?P<pk>[0-9]+)/$',views.modelsandbrands),
+    url(r'^getjointdriver/(?P<pk>[0-9]+)/$',views.getjointdrivers)
 
 ]

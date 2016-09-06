@@ -1185,3 +1185,27 @@ def findDistance(url):
         print(inst.args)
         print(inst)
     return []
+
+@api_view(['GET','POST'])
+def getjointdrivers(request , pk , format = None):
+        if(request.method == "GET"):
+            try:
+                print("================================ GET DRIVERS FOR JOINT ====================================")
+                print('joint id is ' , pk)
+                car_joint = Car_Joint.objects.get(id = pk)
+                print('car joint name is' , car_joint.name)
+                joint_driver_map = Joint_Driver_Mapping.objects.filter(car_joint_id = car_joint)
+                print('drivers for this joint' , len(joint_driver_map))
+                drivermap = []
+                for each_driver in joint_driver_map:
+                    driver_name_map = {}
+                    drive_name_map['driverid'] = each_driver.driver_user_id.userid
+                    drive_name_map['drivername'] = each_driver.driver_user_id.fist_name
+                    drivermapa.append(driver_name_map)
+                return Response({'response':[{'error':False,'reason':'Drivers Available','success':True,'id':pk , 'responsedata':drivermap}]} , status = status.HTTP_201_CREATED)
+            except Exception as inst:
+                print("Error in fetching driver for joints")
+                print(type(inst))
+                print(inst.args)
+                print(inst)
+            return Response({'response':[{'error':True,'reason':'Drivers Not Available','success':False,'id':pk , 'responsedata':[]}]} , status = status.HTTP_201_CREATED)
