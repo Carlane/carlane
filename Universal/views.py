@@ -1200,7 +1200,7 @@ def getjointdrivers(request , pk , format = None):
                 for each_driver in joint_driver_map:
                     driver_name_map = {}
                     driver_name_map['driverid'] = each_driver.driver_user_id.userid
-                    driver_name_map['drivername'] = each_driver.driver_user_id.fist_name
+                    driver_name_map['drivername'] = each_driver.driver_user_id.first_name
                     drivermapa.append(driver_name_map)
                 return Response({'response':[{'error':False,'reason':'Drivers Available','success':True,'id':pk , 'responsedata':drivermap}]} , status = status.HTTP_201_CREATED)
             except Exception as inst:
